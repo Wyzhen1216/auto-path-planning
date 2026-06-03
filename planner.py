@@ -23,9 +23,9 @@ class Config:
     def __init__(self) -> None:
         self.max_speed = 1.0
         self.min_speed = -0.5
-        self.max_yaw_rate = 40.0 * math.pi / 180.0
+        self.max_yaw_rate = 50.0 * math.pi / 180.0
         self.max_accel = 0.2
-        self.max_delta_yaw_rate = 40.0 * math.pi / 180.0
+        self.max_delta_yaw_rate = 50.0 * math.pi / 180.0
         self.v_resolution = 0.01
         self.yaw_rate_resolution = 0.1 * math.pi / 180.0
         self.dt = 0.1
