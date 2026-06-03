@@ -1,0 +1,16 @@
+[project]
+name = "autopath"
+version = "0.1.0"
+description = "DWA autoresearch-style local evolution for path planning"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.24",
+]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["planner", "prepare"]
