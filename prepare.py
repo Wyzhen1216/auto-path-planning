@@ -244,6 +244,11 @@ def main() -> int:
         action="store_true",
         help="将本次结果写入 baseline_results.json（首次 setup 时使用）",
     )
+    parser.add_argument(
+        "--notes",
+        default="",
+        help="实验备注（写入 results.tsv 的 notes 列，建议：hyp=... | change=...）",
+    )
     args = parser.parse_args()
 
     summary = run_eval(args.mode, save_baseline_flag=args.save_baseline)
@@ -266,7 +271,7 @@ def main() -> int:
             "plan_time_ms": f"{summary.plan_time_ms:.6f}",
             "maps_evaluated": str(summary.maps_evaluated),
             "better_than_baseline": better,
-            "notes": "",
+            "notes": " ".join(args.notes.split()),
         }
     )
     print(f"Wrote {RESULTS_PATH}")

@@ -47,6 +47,16 @@ $env:ROBOTICS_KNOWHOW = "D:\autopathplanning\robotics-knowhow"
 
 比较顺序：success_rate ↑ → avg_path_length ↓ → plan_time_ms ↓
 
+## 实验记录在哪
+
+| 文件 | 谁写 | 内容 |
+|------|------|------|
+| `results.tsv` | `prepare.py` 自动 | 每轮指标 + `better_than_baseline` + `--notes` |
+| `experiment_log.md` | Agent 每轮追加 | 假设、改动、指标、keep/rollback（人类可读） |
+| Agent Chat | Agent 回复 | 同 `experiment_log.md` 的简短摘要 |
+
+`baseline_results.json` 仅为对比基准，不是逐轮日志。
+
 ## 许可
 
 DWA 逻辑源自 [PythonRobotics](https://github.com/AtsushiSakai/PythonRobotics)（MIT）。本仓库实验框架 MIT。

@@ -9,3 +9,4 @@ venv/
 # prepare 生成；可本地保留但不建议 Agent 提交
 results.tsv
 baseline_results.json
+experiment_log.md

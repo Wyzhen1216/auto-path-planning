@@ -61,11 +61,43 @@ python prepare.py --mode full --save-baseline
 1. **假设**：用一句话写本轮想验证的改动（例如增大 `obstacle_cost_gain` 避障更保守）。
 2. **只改** `planner.py`（`Config` 默认值或 `calc_control_and_trajectory` 内逻辑，仍在 DWA 族内）。
 3. `git add planner.py && git commit -m "exp: <简短描述>"`
-4. `python prepare.py --mode full`
+4. `python prepare.py --mode full --notes "hyp=<假设一句话> | change=<具体改动>"`
 5. 读 `results.tsv` 最后一行与终端输出：
    - `better_than_baseline` 为 `True` → **保留** commit  
    - 否则 → `git reset --hard HEAD~1` 回滚
-6. 在回复中记录：假设、改动、三指标、keep/rollback。
+6. **写入实验日志** `experiment_log.md`（追加一段，见下方模板）；同时在 Chat 回复里贴同一段摘要。
+
+### 实验记录（每轮必须做）
+
+人类可读主日志：`D:\autopathplanning\experiment_log.md`（本地文件，不 commit）。  
+机器可读指标：`results.tsv`（`prepare.py` 自动追加；`notes` 列来自 `--notes`）。
+
+**第 6 步模板**（将 `<...>` 替换为本轮真实值后追加到 `experiment_log.md`）：
+
+```markdown
+## Round <N> | <git短hash> | <keep|rollback>
+- **假设**: <一句话>
+- **改动**: <planner.py 中改了什么>
+- **指标**: success_rate=<>, avg_path_length=<>, plan_time_ms=<>, better_than_baseline=<>
+- **决策**: <keep 保留 commit / rollback 已 reset>
+```
+
+PowerShell 追加示例（决策完成后再执行）：
+
+```powershell
+$commit = git rev-parse --short HEAD
+Add-Content -Path D:\autopathplanning\experiment_log.md -Encoding utf8 @"
+
+## Round 1 | $commit | keep
+- **假设**: 增大 obstacle_cost_gain 使绕障更保守
+- **改动**: obstacle_cost_gain 1.0 -> 1.5
+- **指标**: success_rate=1.0, avg_path_length=14.21, plan_time_ms=33.1, better_than_baseline=True
+- **决策**: keep
+
+"@
+```
+
+Chat 回复可简写为同一段的四行 bullet，便于在 Cursor 里滚动浏览 overnight 进度。
 
 ### 禁止
 
@@ -73,7 +105,7 @@ python prepare.py --mode full --save-baseline
 - 更换算法族（A* / RRT / PRM 等）
 - 删除或绕过碰撞检测
 - 新增 pip 依赖
-- `git add` / 提交 `results.tsv`（由 prepare 追加，仅人类可读盘）
+- `git add` / 提交 `results.tsv`、`experiment_log.md`（由 prepare / Agent 本地写入，仅人类可读盘）
 
 ### 允许改动（Phase 1）
 
@@ -94,10 +126,10 @@ python prepare.py --mode full --save-baseline
 
 ```text
 阅读 D:\autopathplanning\program.md，完成 Setup，然后做第 1 轮实验：
-只改 planner.py，commit 后运行 python prepare.py --mode full，根据 better_than_baseline 决定 keep 或 git reset --hard HEAD~1。
+只改 planner.py，commit 后运行 python prepare.py --mode full --notes "hyp=... | change=..."，根据 better_than_baseline 决定 keep 或 git reset --hard HEAD~1，并按 program.md 模板追加 experiment_log.md。
 ```
 
 ## 成功标准（Phase 1 demo）
 
-- 一晚 quick 循环中，出现至少一次 `better_than_baseline=True` 且人类可解释的改动
+- 一晚 full 循环中，出现至少一次 `better_than_baseline=True` 且人类可解释的改动
 - `success_rate` 不得长期低于 baseline；为降 path_length 牺牲成功率视为失败
