@@ -27,8 +27,8 @@ BASELINE_PATH = ROOT / "baseline_results.json"
 
 MAX_STEPS = 800
 
-QUICK_MAPS = ["pr_default.json"]
-FULL_MAPS = ["pr_default.json"]  # 扩展地图时在此或 glob 全量 maps/*.json
+# quick：3 张代表性地图，约 30s/轮，适合过夜循环
+QUICK_MAPS = ["pr_default.json", "obstacle_field.json", "narrow_passage.json"]
 
 
 @dataclass
@@ -69,7 +69,10 @@ def load_map(path: Path) -> MapSpec:
 
 
 def list_map_files(mode: str) -> list[Path]:
-    names = QUICK_MAPS if mode == "quick" else FULL_MAPS
+    if mode == "quick":
+        names = QUICK_MAPS
+    else:
+        names = sorted(p.name for p in MAPS_DIR.glob("*.json"))
     paths = [MAPS_DIR / n for n in names]
     missing = [p for p in paths if not p.exists()]
     if missing:

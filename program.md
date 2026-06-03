@@ -43,14 +43,14 @@ $env:ROBOTICS_KNOWHOW = "D:\autopathplanning\robotics-knowhow"
 ```powershell
 cd D:\autopathplanning
 pip install -e .
-python prepare.py --mode quick --save-baseline
+python prepare.py --mode full --save-baseline
 ```
 
 确认：
 
-- `success_rate = 1.0`（当前 `pr_default` 地图）
-- `avg_path_length` 约 12–18 m 量级（与 PR 绕障轨迹一致即可）
-- 已生成 `baseline_results.json` 与 `results.tsv`
+- `success_rate = 1.0`（当前 5 张地图）
+- `avg_path_length` 约 14–15 m 量级（5 图均值）
+- `baseline_results.json` 中 `maps_evaluated = 5`
 
 若失败：不要改 `prepare.py`；检查 `planner.py` 是否与 PythonRobotics DWA 一致。
 
@@ -61,7 +61,7 @@ python prepare.py --mode quick --save-baseline
 1. **假设**：用一句话写本轮想验证的改动（例如增大 `obstacle_cost_gain` 避障更保守）。
 2. **只改** `planner.py`（`Config` 默认值或 `calc_control_and_trajectory` 内逻辑，仍在 DWA 族内）。
 3. `git add planner.py && git commit -m "exp: <简短描述>"`
-4. `python prepare.py --mode quick`
+4. `python prepare.py --mode full`
 5. 读 `results.tsv` 最后一行与终端输出：
    - `better_than_baseline` 为 `True` → **保留** commit  
    - 否则 → `git reset --hard HEAD~1` 回滚
@@ -87,14 +87,14 @@ python prepare.py --mode quick --save-baseline
 
 ## 预算
 
-- **quick**（`--mode quick`）：当前 1 张图，目标一晚约 **500 轮**
-- **full**：地图集扩充后再用；出关前用 full 确认一次
+- **quick**（`--mode quick`）：3 张图，约 **30s/轮**；仅作快速冒烟，**不与 baseline 比较**
+- **full**（`--mode full`）：5 张图，约 **45s/轮**；**baseline 与过夜循环均用此模式**，目标一晚约 **80–150 轮**
 
 ## 启动提示（复制给 Agent）
 
 ```text
 阅读 D:\autopathplanning\program.md，完成 Setup，然后做第 1 轮实验：
-只改 planner.py，commit 后运行 python prepare.py --mode quick，根据 better_than_baseline 决定 keep 或 git reset --hard HEAD~1。
+只改 planner.py，commit 后运行 python prepare.py --mode full，根据 better_than_baseline 决定 keep 或 git reset --hard HEAD~1。
 ```
 
 ## 成功标准（Phase 1 demo）

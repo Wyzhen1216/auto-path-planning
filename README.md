@@ -18,10 +18,10 @@ maps/        — 评测场景 JSON
 ```powershell
 cd D:\autopathplanning
 pip install -e .
-python prepare.py --mode quick --save-baseline
+python prepare.py --mode full --save-baseline
 ```
 
-期望：`success_rate=1.0`，`pr_default` 约 50–60 步内到达（与 knowhow 手跑基线一致）。
+期望：`success_rate=1.0`，`full` 模式 5 张图均可到达目标；baseline 以 5 图均值为准。
 
 ## 运行 Agent
 
