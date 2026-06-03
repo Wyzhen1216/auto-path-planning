@@ -29,7 +29,7 @@ class Config:
         self.v_resolution = 0.01
         self.yaw_rate_resolution = 0.1 * math.pi / 180.0
         self.dt = 0.1
-        self.predict_time = 3.0
+        self.predict_time = 2.8
         self.to_goal_cost_gain = 0.25
         self.speed_cost_gain = 1.6
         self.obstacle_cost_gain = 1.0
