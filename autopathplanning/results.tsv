@@ -1,0 +1,5 @@
+timestamp_utc	mode	git_commit	success_rate	avg_path_length	plan_time_ms	maps_evaluated	better_than_baseline	notes
+2026-06-03T13:05:56.839152+00:00	quick	no-git	1.000000	19.428000	30.531619	1	baseline_set	
+2026-06-03T13:15:07.001920+00:00	quick	no-git	1.000000	19.428000	29.302498	1	True	
+2026-06-03T14:01:28.039784+00:00	quick	0aeadd9	1.000000	19.428000	28.136309	1	baseline_set	
+2026-06-03T14:01:53.898482+00:00	quick	0aeadd9	1.000000	19.428000	28.310544	1	baseline_set	

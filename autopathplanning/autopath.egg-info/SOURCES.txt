@@ -1,0 +1,9 @@
+README.md
+planner.py
+prepare.py
+pyproject.toml
+autopath.egg-info/PKG-INFO
+autopath.egg-info/SOURCES.txt
+autopath.egg-info/dependency_links.txt
+autopath.egg-info/requires.txt
+autopath.egg-info/top_level.txt
