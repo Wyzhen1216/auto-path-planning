@@ -30,7 +30,7 @@ class Config:
         self.yaw_rate_resolution = 0.1 * math.pi / 180.0
         self.dt = 0.1
         self.predict_time = 3.0
-        self.to_goal_cost_gain = 0.15
+        self.to_goal_cost_gain = 0.25
         self.speed_cost_gain = 1.0
         self.obstacle_cost_gain = 1.0
         self.robot_stuck_flag_cons = 0.001
