@@ -1,0 +1,53 @@
+timestamp_utc	mode	git_commit	success_rate	avg_path_length	plan_time_ms	maps_evaluated	better_than_baseline	notes
+2026-06-03T13:05:56.839152+00:00	quick	no-git	1.000000	19.428000	30.531619	1	baseline_set	
+2026-06-03T13:15:07.001920+00:00	quick	no-git	1.000000	19.428000	29.302498	1	True	
+2026-06-03T14:01:28.039784+00:00	quick	0aeadd9	1.000000	19.428000	28.136309	1	baseline_set	
+2026-06-03T14:01:53.898482+00:00	quick	0aeadd9	1.000000	19.428000	28.310544	1	baseline_set	
+2026-06-03T15:01:37.357770+00:00	quick	0aeadd9	1.000000	15.094333	35.317153	3	baseline_set	
+2026-06-03T15:02:20.619630+00:00	full	0aeadd9	1.000000	14.587400	36.027146	5	True	
+2026-06-03T16:11:50.172081+00:00	full	0aeadd9	1.000000	14.587400	32.507266	5	baseline_set	
+2026-06-03T16:25:48.726007+00:00	quick	5e47133	1.000000	15.094333	35.076932	3	False	hyp=test | change=none
+2026-06-03T16:51:20.336651+00:00	full	6a74cd1	1.000000	14.587400	57.347055	5	baseline_set	
+2026-06-03T16:53:11.017587+00:00	full	5b5c2b4	1.000000	14.115800	58.061539	5	True	hyp=stronger goal heading reduces detours | change=to_goal_cost_gain 0.15->0.25
+2026-06-03T16:55:48.308090+00:00	full	fc0792a	1.000000	14.731400	79.269015	5	False	hyp=continue stronger goal heading | change=to_goal_cost_gain 0.25->0.35
+2026-06-03T16:56:48.515565+00:00	full	d26d3dc	1.000000	13.800600	41.524895	5	True	hyp=higher speed preference shortens paths | change=speed_cost_gain 1.0->1.5
+2026-06-03T16:57:39.514040+00:00	full	30b1bb7	1.000000	13.469000	49.489810	5	True	hyp=continue higher speed preference | change=speed_cost_gain 1.5->2.0
+2026-06-03T16:58:26.350464+00:00	full	9d686b0	1.000000	13.473400	46.287966	5	True	hyp=push speed preference further | change=speed_cost_gain 2.0->2.5
+2026-06-03T16:59:20.163709+00:00	full	2ca3d88	1.000000	14.411400	50.232989	5	True	hyp=higher max speed enables faster direct paths | change=max_speed 1.0->1.2
+2026-06-03T17:00:05.833139+00:00	full	3671a01	1.000000	14.119000	33.680179	5	True	hyp=shorter prediction horizon reduces over-planning detours | change=predict_time 3.0->2.0
+2026-06-03T17:01:15.781278+00:00	full	d0c9c98	1.000000	14.280000	42.061973	5	True	hyp=lower obstacle weight allows tighter paths | change=predict_time 2.0->3.0, obstacle_cost_gain 1.0->0.8
+2026-06-03T17:02:07.051169+00:00	full	d0f5d74	1.000000	14.272800	42.147024	5	True	hyp=optimal speed gain with lower obstacle weight | change=speed_cost_gain 2.5->2.0
+2026-06-03T17:03:07.803246+00:00	full	8c9ed64	0.800000	13.040500	52.105535	5	False	hyp=slightly lower obstacle weight for tighter paths | change=obstacle_cost_gain 1.0->0.85
+2026-06-03T17:04:19.765378+00:00	full	a1fdf3d	1.000000	13.448000	64.585797	5	True	hyp=faster turning enables sharper shorter paths | change=max_yaw_rate and max_delta_yaw_rate 40->50 deg/s
+2026-06-03T17:05:23.165612+00:00	full	e795ecd	1.000000	13.453800	68.241346	5	True	hyp=continue faster turning | change=max_yaw_rate 50->60 deg/s
+2026-06-03T17:06:28.733813+00:00	full	2034b78	1.000000	13.451200	53.317553	5	True	hyp=speed+turn combo shortens paths | change=speed_cost_gain 2.0->2.2
+2026-06-03T17:07:35.090035+00:00	full	d25fc74	1.000000	13.451600	58.395917	5	True	hyp=fine-tune goal heading between 0.25 and 0.35 | change=to_goal_cost_gain 0.25->0.28
+2026-06-03T17:09:03.273772+00:00	full	990c270	1.000000	13.385000	85.698807	5	True	hyp=faster acceleration reaches target speed sooner | change=max_accel 0.2->0.3
+2026-06-03T17:10:30.024121+00:00	full	a68263a	1.000000	13.424400	93.519716	5	True	hyp=continue higher acceleration | change=max_accel 0.3->0.4
+2026-06-03T17:12:06.256288+00:00	full	7b64bb8	1.000000	14.372000	87.399939	5	True	hyp=longer horizon improves obstacle avoidance efficiency | change=predict_time 3.0->3.5
+2026-06-03T17:13:30.348279+00:00	full	258d04b	1.000000	13.384600	79.751282	5	True	hyp=lower speed cost with high accel balances path length | change=speed_cost_gain 2.0->1.8
+2026-06-03T17:14:38.008825+00:00	full	6b346fc	1.000000	13.383200	72.807871	5	True	hyp=continue lowering speed cost | change=speed_cost_gain 1.8->1.6
+2026-06-03T17:16:31.260079+00:00	full	76e8ebc	1.000000	13.985600	80.141616	5	True	hyp=continue lowering speed cost | change=speed_cost_gain 1.6->1.4
+2026-06-03T17:17:54.299191+00:00	full	1396ac6	1.000000	13.401000	79.068900	5	True	hyp=fine-tune acceleration between 0.3 and 0.4 | change=max_accel 0.3->0.35
+2026-06-03T17:19:08.574216+00:00	full	6b346fc	1.000000	13.383200	72.738733	5	True	hyp=fine-tune speed cost between 1.6 and 1.8 | change=speed_cost_gain 1.6->1.7
+2026-06-03T17:20:22.886805+00:00	full	8220317	1.000000	13.383400	75.786228	5	True	hyp=fine-tune speed cost between 1.6 and 1.8 | change=speed_cost_gain 1.6->1.7
+2026-06-03T17:21:35.485486+00:00	full	6b346fc	1.000000	13.383200	72.263689	5	True	hyp=earlier unstuck trigger avoids long stalls | change=robot_stuck_flag_cons 0.001->0.005
+2026-06-03T17:22:56.555794+00:00	full	dedf409	1.000000	13.383200	73.366502	5	True	hyp=earlier unstuck trigger avoids long stalls | change=robot_stuck_flag_cons 0.001->0.005
+2026-06-03T17:24:36.695454+00:00	full	e1fbad2	1.000000	13.954600	86.380588	5	True	hyp=mean speed cost encourages sustained velocity | change=speed_cost uses np.mean(trajectory v) not final v
+2026-06-03T17:26:01.449974+00:00	full	973c820	1.000000	13.385800	82.478033	5	True	hyp=mild obstacle weight reduction for tighter paths | change=obstacle_cost_gain 1.0->0.95
+2026-06-03T17:27:14.963869+00:00	full	c353e35	1.000000	13.398000	80.113005	5	True	hyp=slightly lower goal weight balances speed and heading | change=to_goal_cost_gain 0.25->0.23
+2026-06-03T17:29:36.741739+00:00	full	f4e870a	1.000000	13.386400	153.337836	5	True	hyp=finer angular sampling finds shorter trajectories | change=yaw_rate_resolution 0.1->0.05 deg
+2026-06-03T17:30:55.584579+00:00	full	6b346fc	1.000000	13.383200	80.302371	5	True	hyp=slightly shorter horizon with tuned params | change=predict_time 3.0->2.8
+2026-06-03T17:32:01.556037+00:00	full	26d327c	1.000000	13.276400	70.179912	5	True	hyp=slightly shorter horizon with tuned params | change=predict_time 3.0->2.8
+2026-06-03T17:32:57.718527+00:00	full	77944a5	1.000000	13.349800	63.478196	5	True	hyp=continue shorter prediction horizon | change=predict_time 2.8->2.6
+2026-06-03T17:34:09.648125+00:00	full	26d327c	1.000000	13.276400	75.557739	5	True	hyp=fine-tune predict_time between 2.8 and 3.0 | change=predict_time 3.0->2.9
+2026-06-03T17:35:18.316312+00:00	full	bc2f2d4	1.000000	13.276000	71.143600	5	True	hyp=fine-tune speed cost with predict_time 2.8 | change=speed_cost_gain 1.6->1.55
+2026-06-03T17:36:24.091639+00:00	full	e77f895	1.000000	13.276000	71.745655	5	True	hyp=continue fine-tuning speed cost | change=speed_cost_gain 1.55->1.5
+2026-06-03T17:37:47.743230+00:00	full	29b886a	1.000000	14.083200	75.819982	5	True	hyp=continue lowering speed cost with predict2.8 | change=speed_cost_gain 1.5->1.45
+2026-06-03T17:39:12.608708+00:00	full	025ddab	1.000000	14.109000	73.058563	5	True	hyp=fine-tune goal heading with predict2.8 | change=to_goal_cost_gain 0.25->0.26
+2026-06-03T17:41:29.499397+00:00	full	90f6a26	0.800000	13.191500	86.538063	5	False	hyp=fine-tune yaw rate with predict2.8 | change=max_yaw_rate 50->52 deg/s
+2026-06-03T17:44:41.694714+00:00	full	698cc16	0.600000	13.913333	76.699459	5	False	hyp=fine-tune accel with predict2.8 speed1.5 | change=max_accel 0.3->0.28
+2026-06-03T17:45:56.418568+00:00	full	f91dac2	1.000000	13.279400	73.833138	5	True	hyp=faster yaw rate changes improve maneuverability | change=max_delta_yaw_rate 50->55 deg/s
+2026-06-03T17:47:11.898144+00:00	full	24ef0a5	1.000000	13.276000	75.010478	5	True	hyp=less reverse preference shortens paths | change=min_speed -0.5->-0.4
+2026-06-03T17:48:36.271936+00:00	full	8953c97	1.000000	13.283360	87.420095	5	True	hyp=finer velocity sampling finds better trajectories | change=v_resolution 0.01->0.008
+2026-06-03T17:50:12.741738+00:00	full	f8eb5e5	1.000000	13.280600	74.433605	5	True	hyp=fine-tune goal heading down from 0.25 | change=to_goal_cost_gain 0.25->0.24
