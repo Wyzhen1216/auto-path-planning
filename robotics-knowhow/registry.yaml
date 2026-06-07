@@ -1,0 +1,69 @@
+# 算法注册表
+# Agent 通过此文件决定当前实验哪个算法、用什么地图
+
+# 当前激活的算法（dwa / dijkstra / astar / rrt-star）
+active_algorithm: dijkstra
+
+# 算法配置列表
+algorithms:
+  # 局部避障算法
+  dwa:
+    name: Dynamic Window Approach
+    eval_mode: local  # 局部规划模式
+    source: PathPlanning/DynamicWindowApproach/dynamic_window_approach.py
+    maps_dir: maps/local/
+    knowhow: domains/path-planning/dwa.md
+    description: 基于速度空间采样的局部避障算法，适用于动态环境实时避障
+
+  # 栅格路径规划算法
+  dijkstra:
+    name: Dijkstra
+    eval_mode: grid  # 栅格规划模式
+    source: PathPlanning/Dijkstra/dijkstra.py
+    maps_dir: maps/grid/
+    knowhow: domains/path-planning/dijkstra.md
+    description: 无启发式最短路径搜索，保证全局最优
+
+  astar:
+    name: A*
+    eval_mode: grid  # 栅格规划模式
+    source: PathPlanning/AStar/a_star.py
+    maps_dir: maps/grid/
+    knowhow: domains/path-planning/astar.md
+    description: 带启发式的最优路径搜索，比 Dijkstra 效率更高
+
+  # 采样式路径规划算法
+  rrt-star:
+    name: RRT*
+    eval_mode: sampling  # 采样规划模式
+    source: PathPlanning/RRTStar/rrt_star.py
+    maps_dir: maps/sampling/
+    knowhow: domains/path-planning/rrt-star.md
+    description: 基于快速扩展随机树的概率路径规划，渐进最优
+
+# 地图格式定义
+map_formats:
+  grid:
+    description: 栅格地图，由网格单元组成
+    required_fields:
+      - resolution    # 栅格分辨率 (m)
+      - robot_radius  # 机器人半径 (m)
+      - start         # 起点坐标 [x, y]
+      - goal          # 终点坐标 [x, y]
+      - obstacles     # 障碍物折线点列表
+
+  sampling:
+    description: 采样空间，由连续坐标组成
+    required_fields:
+      - start             # 起点坐标 [x, y]
+      - goal              # 终点坐标 [x, y]
+      - robot_radius      # 机器人半径 (m)
+      - obstacle_circles  # 圆形障碍物列表 [[x, y, radius], ...]
+      - world_bounds      # 世界边界 [min_x, max_x, min_y, max_y]
+
+  local:
+    description: 局部地图，用于 DWA 等局部规划算法
+    required_fields:
+      - initial          # 初始状态 [x, y, yaw, v, w]
+      - goal             # 目标点 [x, y]
+      - obstacles        # 障碍物点列表
