@@ -2,4 +2,4 @@
 # 切换算法时：1) 从 planners/<algo>.py 复制到 planner.py  2) 更新本文件  3) commit 两者
 
 algorithm: rrt_star  # dwa | dijkstra | astar | rrt_star
-rationale: "RRT* connect_circle_dist=10 已 keep，继续扩大至 15 寻更短路径"
+rationale: "RRT* connect_circle_dist=15 已 keep，继续扩大至 20"
