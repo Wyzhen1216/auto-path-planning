@@ -1,0 +1,110 @@
+# 算法注册表 - Phase 2
+# Agent 一次只进化 active_algorithm 指定的算法
+
+active_algorithm: dijkstra  # 当前实验算法：dijkstra | astar | rrt_star | dwa
+
+algorithms:
+  # === Phase 1: DWA (局部避障) ===
+  dwa:
+    name: Dynamic Window Approach
+    phase: 1
+    eval_mode: dwa  # DWA 特有模式（动态障碍）
+    source:
+      repo: https://github.com/AtsushiSakai/PythonRobotics
+      path: PathPlanning/DynamicWindowApproach/dynamic_window_approach.py
+      license: MIT
+    maps_dir: maps/dwa/  # DWA 使用自带障碍场景
+    knowhow: domains/path-planning/dwa.md
+    editable_in_planner:
+      - to_goal_cost_gain
+      - speed_cost_gain
+      - obstacle_cost_gain
+      - predict_time
+      - v_resolution
+      - yaw_rate_resolution
+      - max_speed
+      - max_yaw_rate
+      - max_accel
+      - max_delta_yaw_rate
+      - robot_radius
+      - robot_stuck_flag_cons
+
+  # === Phase 2: Grid 算法 ===
+  dijkstra:
+    name: Dijkstra (Grid-based)
+    phase: 2
+    eval_mode: grid  # 网格地图评测
+    source:
+      repo: https://github.com/AtsushiSakai/PythonRobotics
+      path: PathPlanning/Dijkstra/dijkstra.py
+      license: MIT
+    maps_dir: maps/grid/  # 与 A* 共享网格地图
+    knowhow: domains/path-planning/dijkstra.md
+    editable_in_planner:
+      - resolution
+      - robot_radius
+      - motion_model  # 8-direction / 4-direction
+
+  astar:
+    name: A* (Grid-based with Heuristic)
+    phase: 2
+    eval_mode: grid  # 网格地图评测
+    source:
+      repo: https://github.com/AtsushiSakai/PythonRobotics
+      path: PathPlanning/AStar/a_star.py
+      license: MIT
+    maps_dir: maps/grid/  # 与 Dijkstra 共享网格地图
+    knowhow: domains/path-planning/astar.md
+    editable_in_planner:
+      - resolution
+      - robot_radius
+      - heuristic_weight  # 启发式权重 w
+      - motion_model  # 8-direction / 4-direction
+
+  # === Phase 2: Sampling 算法 ===
+  rrt_star:
+    name: RRT* (Optimal Sampling-based)
+    phase: 2
+    eval_mode: sampling  # 随机采样地图评测
+    source:
+      repo: https://github.com/AtsushiSakai/PythonRobotics
+      path: PathPlanning/RRTStar/rrt_star.py
+      license: MIT
+    maps_dir: maps/sampling/  # RRT* 使用圆形障碍地图
+    knowhow: domains/path-planning/rrt-star.md
+    editable_in_planner:
+      - expand_dis
+      - path_resolution
+      - goal_sample_rate
+      - max_iter
+      - connect_circle_dist
+      - robot_radius
+      - random_seed  # 可选：固定随机种子
+
+# === 地图类型说明 ===
+map_types:
+  grid:
+    description: 网格地图，适用于 Dijkstra/A*
+    format: JSON
+    fields:
+      - resolution      # 网格分辨率 [m]
+      - robot_radius    # 机器人半径 [m]
+      - start           # 起点 [x, y]
+      - goal            # 终点 [x, y]
+      - obstacles       # 障碍物折线点列表 [[x1,y1], [x2,y2], ...]
+      - world_bounds    # 世界边界 [min_x, max_x, min_y, max_y]
+
+  sampling:
+    description: 随机采样地图，适用于 RRT*
+    format: JSON
+    fields:
+      - start           # 起点 [x, y]
+      - goal            # 终点 [x, y]
+      - robot_radius    # 机器人半径 [m]
+      - obstacle_circles  # 圆形障碍物 [[x, y, radius], ...]
+      - world_bounds    # 世界边界 [min_x, max_x, min_y, max_y]
+
+  dwa:
+    description: DWA 动态障碍场景（PythonRobotics 自带）
+    format: PythonRobotics 内置
+    fields: N/A
