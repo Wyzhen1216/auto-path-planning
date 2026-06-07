@@ -1,167 +1,206 @@
 """
-Dijkstra grid planner — Agent 可修改的唯一代码文件（Phase 2）。
+RRT* planner — Phase 2（Agent 实验时复制为 planner.py）。
 
-逻辑源自 PythonRobotics PathPlanning/Dijkstra/dijkstra.py
+逻辑源自 PythonRobotics PathPlanning/RRTStar/rrt_star.py
 """
 
 from __future__ import annotations
 
 import math
+import random
 
 
 class Config:
-    """栅格 Dijkstra 参数 — Agent 主要改这里。"""
+    """RRT* 参数 — Agent 主要改这里。"""
 
     def __init__(self) -> None:
-        self.resolution = 0.5
-        self.robot_radius = 0.3
-        self.motion_model = "8-dir"  # "8-dir" | "4-dir"
+        self.expand_dis = 3.0
+        self.path_resolution = 0.5
+        self.goal_sample_rate = 20
+        self.max_iter = 500
+        self.connect_circle_dist = 10.0
+        self.robot_radius = 0.8
 
 
 config = Config()
 
 
-class DijkstraPlanner:
-    """无 GUI 版 PythonRobotics DijkstraPlanner。"""
+class Node:
+    def __init__(self, x: float, y: float) -> None:
+        self.x = x
+        self.y = y
+        self.parent: Node | None = None
+        self.cost = 0.0
 
-    class Node:
-        def __init__(self, x: int, y: int, cost: float, parent_index: int) -> None:
-            self.x = x
-            self.y = y
-            self.cost = cost
-            self.parent_index = parent_index
 
+class RRTStar:
     def __init__(
         self,
-        ox: list[float],
-        oy: list[float],
-        resolution: float,
+        obstacle_circles: list[list[float]],
+        bounds: tuple[float, float, float, float],
+        expand_dis: float,
+        path_resolution: float,
+        goal_sample_rate: int,
+        max_iter: int,
+        connect_circle_dist: float,
         robot_radius: float,
-        motion_model: str = "8-dir",
     ) -> None:
-        self.resolution = resolution
+        self.obstacle_circles = obstacle_circles
+        self.min_x, self.max_x, self.min_y, self.max_y = bounds
+        self.expand_dis = expand_dis
+        self.path_resolution = path_resolution
+        self.goal_sample_rate = goal_sample_rate
+        self.max_iter = max_iter
+        self.connect_circle_dist = connect_circle_dist
         self.robot_radius = robot_radius
-        self.motion = self._motion_model(motion_model)
-        self.min_x = round(min(ox))
-        self.min_y = round(min(oy))
-        self.max_x = round(max(ox))
-        self.max_y = round(max(oy))
-        self.x_width = round((self.max_x - self.min_x) / self.resolution)
-        self.y_width = round((self.max_y - self.min_y) / self.resolution)
-        self.obstacle_map = self._build_obstacle_map(ox, oy)
-
-    @staticmethod
-    def _motion_model(name: str) -> list[list[float]]:
-        four = [[1, 0, 1], [0, 1, 1], [-1, 0, 1], [0, -1, 1]]
-        if name == "4-dir":
-            return four
-        return four + [
-            [-1, -1, math.sqrt(2)],
-            [-1, 1, math.sqrt(2)],
-            [1, -1, math.sqrt(2)],
-            [1, 1, math.sqrt(2)],
-        ]
-
-    def _build_obstacle_map(self, ox: list[float], oy: list[float]) -> list[list[bool]]:
-        obstacle_map = [[False for _ in range(self.y_width)] for _ in range(self.x_width)]
-        for ix in range(self.x_width):
-            x = self.calc_position(ix, self.min_x)
-            for iy in range(self.y_width):
-                y = self.calc_position(iy, self.min_y)
-                for iox, ioy in zip(ox, oy, strict=True):
-                    if math.hypot(iox - x, ioy - y) <= self.robot_radius:
-                        obstacle_map[ix][iy] = True
-                        break
-        return obstacle_map
+        self.node_list: list[Node] = []
 
     def planning(self, sx: float, sy: float, gx: float, gy: float) -> tuple[list[float], list[float]]:
-        start_node = self.Node(
-            self.calc_xy_index(sx, self.min_x),
-            self.calc_xy_index(sy, self.min_y),
-            0.0,
-            -1,
-        )
-        goal_node = self.Node(
-            self.calc_xy_index(gx, self.min_x),
-            self.calc_xy_index(gy, self.min_y),
-            0.0,
-            -1,
-        )
+        start = Node(sx, sy)
+        goal = Node(gx, gy)
+        self.node_list = [start]
 
-        open_set: dict[int, DijkstraPlanner.Node] = {self.calc_index(start_node): start_node}
-        closed_set: dict[int, DijkstraPlanner.Node] = {}
+        for _ in range(self.max_iter):
+            rnd = self._sample(goal)
+            nearest = self._nearest_node(rnd)
+            new_node = self._steer(nearest, rnd)
+            if not self._is_free_path(nearest.x, nearest.y, new_node.x, new_node.y):
+                continue
 
-        while open_set:
-            c_id = min(open_set, key=lambda o: open_set[o].cost)
-            current = open_set[c_id]
+            near_nodes = self._near_nodes(new_node)
+            new_node = self._choose_parent(new_node, near_nodes, nearest)
+            self.node_list.append(new_node)
+            self._rewire(new_node, near_nodes)
 
-            if current.x == goal_node.x and current.y == goal_node.y:
-                closed_set[c_id] = current
-                goal_node.parent_index = c_id
-                goal_node.cost = current.cost
-                break
+            dist_to_goal = math.hypot(new_node.x - goal.x, new_node.y - goal.y)
+            if dist_to_goal <= self.expand_dis:
+                final = self._steer(new_node, [goal.x, goal.y])
+                if self._is_free_path(new_node.x, new_node.y, final.x, final.y):
+                    final.parent = new_node
+                    final.cost = new_node.cost + dist_to_goal
+                    return self._final_path(final)
 
-            del open_set[c_id]
-            closed_set[c_id] = current
-
-            for move_x, move_y, move_cost in self.motion:
-                node = self.Node(
-                    current.x + int(move_x),
-                    current.y + int(move_y),
-                    current.cost + move_cost,
-                    c_id,
-                )
-                n_id = self.calc_index(node)
-
-                if n_id in closed_set or not self.verify_node(node):
-                    continue
-
-                if n_id not in open_set or open_set[n_id].cost >= node.cost:
-                    open_set[n_id] = node
-        else:
+        best = min(self.node_list, key=lambda n: math.hypot(n.x - goal.x, n.y - goal.y))
+        if math.hypot(best.x - goal.x, best.y - goal.y) > self.expand_dis * 2:
             return [], []
+        final = self._steer(best, [goal.x, goal.y])
+        if not self._is_free_path(best.x, best.y, final.x, final.y):
+            return [], []
+        final.parent = best
+        return self._final_path(final)
 
-        return self.calc_final_path(goal_node, closed_set)
+    def _sample(self, goal: Node) -> list[float]:
+        if random.randint(0, 100) > self.goal_sample_rate:
+            return [
+                random.uniform(self.min_x, self.max_x),
+                random.uniform(self.min_y, self.max_y),
+            ]
+        return [goal.x, goal.y]
 
-    def calc_final_path(
-        self, goal_node: Node, closed_set: dict[int, Node]
-    ) -> tuple[list[float], list[float]]:
-        rx = [self.calc_position(goal_node.x, self.min_x)]
-        ry = [self.calc_position(goal_node.y, self.min_y)]
-        parent_index = goal_node.parent_index
-        while parent_index != -1:
-            n = closed_set[parent_index]
-            rx.append(self.calc_position(n.x, self.min_x))
-            ry.append(self.calc_position(n.y, self.min_y))
-            parent_index = n.parent_index
-        return rx, ry
+    def _nearest_node(self, p: list[float]) -> Node:
+        return min(self.node_list, key=lambda n: (n.x - p[0]) ** 2 + (n.y - p[1]) ** 2)
 
-    def calc_position(self, index: int, minp: float) -> float:
-        return index * self.resolution + minp
+    def _steer(self, from_node: Node, to_point: list[float]) -> Node:
+        dx = to_point[0] - from_node.x
+        dy = to_point[1] - from_node.y
+        dist = math.hypot(dx, dy)
+        if dist <= self.expand_dis:
+            node = Node(to_point[0], to_point[1])
+        else:
+            theta = math.atan2(dy, dx)
+            node = Node(
+                from_node.x + self.expand_dis * math.cos(theta),
+                from_node.y + self.expand_dis * math.sin(theta),
+            )
+        node.cost = from_node.cost + math.hypot(node.x - from_node.x, node.y - from_node.y)
+        return node
 
-    def calc_xy_index(self, position: float, minp: float) -> int:
-        return round((position - minp) / self.resolution)
+    def _is_free_path(self, x1: float, y1: float, x2: float, y2: float) -> bool:
+        dist = math.hypot(x2 - x1, y2 - y1)
+        steps = max(int(dist / self.path_resolution), 1)
+        for i in range(steps + 1):
+            t = i / steps
+            if not self._point_free(x1 + t * (x2 - x1), y1 + t * (y2 - y1)):
+                return False
+        return True
 
-    def calc_index(self, node: Node) -> int:
-        return (node.y - self.min_y) * self.x_width + (node.x - self.min_x)
-
-    def verify_node(self, node: Node) -> bool:
-        px = self.calc_position(node.x, self.min_x)
-        py = self.calc_position(node.y, self.min_y)
-        if px < self.min_x or py < self.min_y or px >= self.max_x or py >= self.max_y:
+    def _point_free(self, x: float, y: float) -> bool:
+        if x < self.min_x or x > self.max_x or y < self.min_y or y > self.max_y:
             return False
-        return not self.obstacle_map[node.x][node.y]
+        for cx, cy, r in self.obstacle_circles:
+            if math.hypot(x - cx, y - cy) <= r + self.robot_radius:
+                return False
+        return True
+
+    def _near_nodes(self, node: Node) -> list[Node]:
+        n = len(self.node_list) + 1
+        r = self.connect_circle_dist * math.sqrt(math.log(n) / n)
+        return [
+            other
+            for other in self.node_list
+            if math.hypot(other.x - node.x, other.y - node.y) <= r
+        ]
+
+    def _choose_parent(self, node: Node, near_nodes: list[Node], nearest: Node) -> Node:
+        candidates = near_nodes if near_nodes else [nearest]
+        best: Node | None = None
+        best_cost = float("inf")
+        for near in candidates:
+            if not self._is_free_path(near.x, near.y, node.x, node.y):
+                continue
+            cost = near.cost + math.hypot(node.x - near.x, node.y - near.y)
+            if cost < best_cost:
+                best_cost = cost
+                best = Node(node.x, node.y)
+                best.cost = best_cost
+                best.parent = near
+        if best is None:
+            best = Node(node.x, node.y)
+            best.cost = nearest.cost + math.hypot(node.x - nearest.x, node.y - nearest.y)
+            best.parent = nearest
+        return best
+
+    def _rewire(self, new_node: Node, near_nodes: list[Node]) -> None:
+        for near in near_nodes:
+            if near is new_node.parent:
+                continue
+            new_cost = new_node.cost + math.hypot(near.x - new_node.x, near.y - new_node.y)
+            if new_cost < near.cost and self._is_free_path(new_node.x, new_node.y, near.x, near.y):
+                near.parent = new_node
+                near.cost = new_cost
+
+    @staticmethod
+    def _final_path(end_node: Node) -> tuple[list[float], list[float]]:
+        rx: list[float] = []
+        ry: list[float] = []
+        node: Node | None = end_node
+        while node is not None:
+            rx.append(node.x)
+            ry.append(node.y)
+            node = node.parent
+        return rx, ry
 
 
 def plan_path(
-    sx: float, sy: float, gx: float, gy: float, ox: list[float], oy: list[float]
+    sx: float,
+    sy: float,
+    gx: float,
+    gy: float,
+    obstacle_circles: list[list[float]],
+    world_bounds: list[float],
+    robot_radius: float | None = None,
 ) -> tuple[list[float], list[float]]:
     """单次全局规划 — prepare.py 对此函数计时。"""
-    planner = DijkstraPlanner(
-        ox,
-        oy,
-        config.resolution,
-        config.robot_radius,
-        config.motion_model,
+    bounds = (world_bounds[0], world_bounds[1], world_bounds[2], world_bounds[3])
+    radius = config.robot_radius if robot_radius is None else robot_radius
+    planner = RRTStar(
+        obstacle_circles=obstacle_circles,
+        bounds=bounds,
+        expand_dis=config.expand_dis,
+        path_resolution=config.path_resolution,
+        goal_sample_rate=config.goal_sample_rate,
+        max_iter=config.max_iter,
+        connect_circle_dist=config.connect_circle_dist,
+        robot_radius=radius,
     )
     return planner.planning(sx, sy, gx, gy)
