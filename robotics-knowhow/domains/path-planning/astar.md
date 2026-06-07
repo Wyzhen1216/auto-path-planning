@@ -1,8 +1,8 @@
 ---
-id: path_planning/astar
-title: A* Algorithm
+id: path-planning/astar
+title: A* (Grid-based with Heuristic)
 domain: path_planning
-tags: [global, grid-based, heuristic, shortest-path]
+tags: [global, grid, heuristic, optimal]
 phase: 2
 source:
   repo: https://github.com/AtsushiSakai/PythonRobotics
@@ -14,74 +14,90 @@ autopath:
     - resolution
     - robot_radius
     - heuristic_weight
+    - motion_model
   frozen_risk: low
   do_not_phase2:
-    - change grid structure
-    - modify obstacle representation
-    - switch to continuous space
+    - 切换到 Dijkstra/RRT*/DWA
+    - 修改 prepare.py 指标计算
+    - 删除碰撞检测
+    - 改变地图格式
 ---
 
-## 算法概述
+## 简介
 
-A* 算法是 Dijkstra 算法的改进版，通过引入启发式函数来引导搜索方向，显著提高搜索效率。它在计算代价时同时考虑已走距离和预估剩余距离。
+A* 算法是 Dijkstra 的改进版本，引入**启发式函数**引导搜索方向，大幅减少搜索空间。
+
+核心思想：`f(n) = g(n) + h(n)`，其中 g(n) 是起点到 n 的实际代价，h(n) 是 n 到终点的估计代价。
 
 ## 适用场景 / 不适用场景
 
 | 适用 | 不适用 |
 |------|--------|
-| 静态环境全局路径规划 | 动态障碍环境 |
-| 已知目标位置 | 无目标或多目标 |
-| 需要最优路径且效率要求高 | 启发式难以定义的场景 |
+| 静态地图、全局规划 | 动态障碍、实时避障 |
+| 需要最优路径 + 快速搜索 | 启发式不可靠的场景 |
+| 网格地图 | 连续空间（需离散化） |
 
-## 核心原理
+## 核心步骤
 
-1. **评估函数**：`f(n) = g(n) + h(n)`
-   - `g(n)`：从起点到节点 n 的实际代价
-   - `h(n)`：从节点 n 到目标的启发式估计
-2. **优先队列**：按 f 值排序扩展节点
-3. **启发式选择**：常用曼哈顿距离或欧几里得距离
-4. **最优性保证**：当 h(n) 是可采纳的（不高估），保证找到最优解
+1. **初始化**: 将起点加入 open_set，f = g + h
+2. **扩展**: 从 open_set 取出 f 值最小的节点
+3. **启发式**: 使用欧氏距离估计 h(n)
+4. **更新**: 若邻居节点未被访问或找到更低 f 值，更新
+5. **终止**: 当终点被访问时，回溯得到路径
 
-## 从 PythonRobotics 溯源
+## 与 PythonRobotics 的对应
 
-| 项目 | 说明 |
+| 变量 | 含义 |
 |------|------|
-| 源文件 | `a_star.py` 的 `main()` |
-| 输入 | `start`, `goal`, `grid` |
-| 输出 | `path_x`, `path_y` |
-| 配置类 | `AStar` 类 |
-| 障碍物格式 | 栅格地图 `grid[0,0]` 为障碍 |
-| 终止条件 | 当前节点为目标节点 |
+| `ox, oy` | 障碍物边界点列表 |
+| `resolution` | 网格分辨率 [m] |
+| `robot_radius` | 机器人半径 [m] |
+| `Node` | 网格节点 (x_index, y_index, cost, parent) |
+| `calc_heuristic(n1, n2)` | 启发式函数：欧氏距离 |
+| `w` | 启发式权重（默认 1.0） |
+| `motion` | 8 方向运动模型 |
 
-### Config 可调参数说明
+### 关键参数（可调）
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
-| `resolution` | 0.1 m | 栅格分辨率 |
-| `robot_radius` | 0.5 m | 机器人半径 |
-| `heuristic_weight` | 1.0 | 启发式权重（>1加速但可能非最优） |
+| `resolution` | 2.0 m | 网格分辨率 |
+| `robot_radius` | 1.0 m | 机器人半径 |
+| `heuristic_weight` | 1.0 | 启发式权重 w，w>1 加速但可能非最优 |
+| `motion_model` | 8-dir | 8 方向或 4 方向 |
 
-## 关键 knowhow
+## 扩展 knowhow
 
-> **实验前必做 checklist**
+> **提示**: 在 autopath 实验时关注这些点
 
-- [ ] 确认启发式函数是可采纳的
-- [ ] 调整 heuristic_weight 平衡效率与最优性
-- [ ] 检查起点和终点是否在自由空间
+- [ ] 调整 heuristic_weight 观察搜索速度与最优性权衡
+  - w = 1.0: 保证最优路径
+  - w > 1.0: 加速搜索，可能牺牲最优性
+  - w < 1.0: 搜索更保守，路径更优但更慢
+- [ ] 对比 A* 与 Dijkstra 的 plan_time_ms 差异
+- [ ] 测试不同地图复杂度下的性能差异
 
-### 在 autopath 中的指标
+### 在 autopath 中的指标定义
 
-- **success_rate**：能否找到可行路径到达目标
-- **avg_path_length**：路径总长度（米），最优时应等于 Dijkstra
-- **plan_time_ms**：单次规划耗时（毫秒），通常快于 Dijkstra
+- **success_rate**: 成功到达 goal 的测试地图比例
+- **avg_path_length**: 路径点之间的欧氏距离累加（米）
+- **plan_time_ms**: `planning()` 函数执行时间（毫秒）
 
-## 常见变体
+## 已知局限
 
-- Weighted A*（非可采纳启发式，更快但可能次优）
-- ARA*（Anytime Repairing A*，逐步优化）
-- Jump Point Search（网格剪枝优化）
+- 启发式函数依赖问题特性
+- 高维空间仍需大量计算
+- 不适合动态障碍场景
 
-## 参考文献
+## 与 Dijkstra 的区别
 
-- Hart, P. E., Nilsson, N. J., & Raphael, B. (1968). A formal basis for the heuristic determination of minimum cost paths.
-- PythonRobotics README: PathPlanning/AStar
+| 特性 | Dijkstra | A* |
+|------|----------|-----|
+| 搜索方向 | 随机扩展 | 目标导向 |
+| 最优性 | 保证 | w=1 时保证 |
+| 计算速度 | 较慢 | 通常更快 |
+
+## 参考
+
+- PythonRobotics: https://github.com/AtsushiSakai/PythonRobotics/tree/master/PathPlanning/AStar
+- Wikipedia: https://en.wikipedia.org/wiki/A*_search_algorithm

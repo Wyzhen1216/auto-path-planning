@@ -1,35 +1,64 @@
 # 路径规划选型
 
-## Phase 1：DWA（已完成）
-
-局部避障专用算法。
-
-- 适用：动态障碍、在线重规划
-- 详见：domains/path-planning/dwa.md
+本文档帮助快速选择合适的路径规划算法。
 
 ---
 
-## Phase 2：全局路径规划（进行中）
+## Phase 1: DWA（局部避障）
 
-### 算法选型表
+**已完成**，最佳版本见 [domains/path-planning/dwa.md](domains/path-planning/dwa.md)。
 
-| 算法 | 类型 | 适用场景 | 最优性 | 特点 |
-|------|------|----------|--------|------|
-| **Dijkstra** | Grid | 静态环境 | 最优 | 经典最短路径，无启发式 |
-| **A*** | Grid | 静态环境 | 最优 | 带启发式，比Dijkstra快 |
-| **RRT*** | Sampling | 高维/复杂环境 | 渐近最优 | 概率采样，适用于非完整约束 |
+| 特性 | DWA |
+|------|-----|
+| 类型 | 局部规划、反应式 |
+| 适用场景 | 动态障碍、实时避障 |
+| 最优性 | 局部最优 |
+| 地图类型 | 动态障碍场景 |
+
+---
+
+## Phase 2: 全局规划算法
+
+**进行中**，三种算法可选。
+
+### 选型表
+
+| 算法 | 类型 | 适用场景 | 最优性 | 地图类型 | 卡片 |
+|------|------|----------|--------|----------|------|
+| **Dijkstra** | 网格搜索 | 静态地图、简单障碍 | 保证最优 | Grid | [dijkstra.md](domains/path-planning/dijkstra.md) |
+| **A*** | 网格搜索 + 启发式 | 静态地图、需要快速搜索 | w=1 时最优 | Grid | [astar.md](domains/path-planning/astar.md) |
+| **RRT*** | 随机采样 | 高维空间、圆形障碍 | 渐近最优 | Sampling | [rrt-star.md](domains/path-planning/rrt-star.md) |
 
 ### 快速判断
 
-| 场景 | 推荐算法 |
-|------|----------|
-| 局部避障、动态障碍、在线重规划 | **DWA** |
-| 静态地图、需要严格最优路径 | **A*** |
-| 高维空间、复杂约束 | **RRT*** |
+- **静态地图 + 网格地图 + 需要最优路径** → **Dijkstra**（最简单）
+- **静态地图 + 网格地图 + 需要快速搜索** → **A***（有启发式）
+- **高维空间 + 圆形障碍 + 连续空间** → **RRT***（采样式）
 
-### 算法卡片目录
+### 地图类型对应
 
-- [DWA](domains/path-planning/dwa.md)
-- [Dijkstra](domains/path-planning/dijkstra.md)
-- [A*](domains/path-planning/astar.md)
-- [RRT*](domains/path-planning/rrt-star.md)
+| 地图类型 | 适用算法 | 目录 |
+|----------|----------|------|
+| Grid（网格） | Dijkstra、A* | `maps/grid/` |
+| Sampling（采样） | RRT* | `maps/sampling/` |
+
+---
+
+## 算法注册表
+
+Phase 3 **Portfolio**：`evolution_mode: portfolio`，Agent 从白名单自选算法。
+
+- [registry.yaml](registry.yaml) — `portfolio_allowed_algorithms`
+- [agent/search-policy.md](agent/search-policy.md) — 每轮流程
+- 根目录 `portfolio_manifest.yaml` — 本轮声明
+
+Phase 2 **locked**（已 superseded）：`active_algorithm` 人类锁定单算法。
+
+---
+
+## 相关文档
+
+- [PROJECT_DECISIONS.md](PROJECT_DECISIONS.md) — 产品决策
+- [registry.yaml](registry.yaml) — 算法注册表
+- [agent/search-policy.md](agent/search-policy.md) — Agent 搜索策略
+- [maps/README.md](maps/README.md) — 地图规格说明

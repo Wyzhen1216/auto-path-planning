@@ -1,0 +1,5 @@
+# Phase 3 Portfolio — Agent 每轮声明本轮选用的算法（与 planner.py 一致）
+# 切换算法时：1) 从 planners/<algo>.py 复制到 planner.py  2) 更新本文件  3) commit 两者
+
+algorithm: dijkstra  # dwa | dijkstra | astar | rrt_star
+rationale: ""        # 可选：为何选此算法（写入 experiment_log 时可引用）

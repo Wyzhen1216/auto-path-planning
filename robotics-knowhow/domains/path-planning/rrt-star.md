@@ -1,8 +1,8 @@
 ---
-id: path_planning/rrt_star
-title: RRT* (Rapidly-exploring Random Tree Star)
+id: path-planning/rrt-star
+title: RRT* (Optimal Sampling-based Path Planning)
 domain: path_planning
-tags: [global, sampling-based, probabilistic, asymptotically-optimal]
+tags: [global, sampling, probabilistic, asymptotically_optimal]
 phase: 2
 source:
   repo: https://github.com/AtsushiSakai/PythonRobotics
@@ -11,80 +11,104 @@ source:
 autopath:
   algorithm_family: rrt_star
   editable_in_planner:
-    - robot_radius
+    - expand_dis
+    - path_resolution
+    - goal_sample_rate
     - max_iter
     - connect_circle_dist
-    - goal_sample_rate
+    - robot_radius
     - random_seed
   frozen_risk: medium
   do_not_phase2:
-    - change obstacle representation
-    - switch to grid-based
-    - modify tree structure
+    - 切换到 Dijkstra/A*/DWA
+    - 修改 prepare.py 指标计算
+    - 删除碰撞检测
+    - 改变地图格式（必须用 sampling）
 ---
 
-## 算法概述
+## 简介
 
-RRT* 是 RRT（快速扩展随机树）的改进版，通过重新布线机制实现渐近最优性。它在扩展树的同时，不断优化已有路径，最终收敛到最优路径。
+RRT* (Rapidly-exploring Random Tree Star) 是一种**基于随机采样的全局路径规划算法**，在 RRT 基础上引入重连机制，随着迭代次数增加路径逐渐趋于最优。
+
+核心思想：
+1. 随机采样空间中的点
+2. 向采样点扩展树
+3. 在扩展过程中重连附近节点，优化路径代价
 
 ## 适用场景 / 不适用场景
 
 | 适用 | 不适用 |
 |------|--------|
-| 高维空间路径规划 | 需要严格最优解 |
-| 复杂障碍物环境 | 实时性要求极高 |
-| 非完整约束机器人 | 小空间精细规划 |
+| 高维空间、复杂障碍 | 需要严格最优路径 |
+| 非网格地图、连续空间 | 时间受限场景 |
+| 圆形障碍物 | 狭窄通道（采样困难） |
 
-## 核心原理
+## 核心步骤
 
-1. **随机采样**：在可行空间随机采样点
-2. **最近节点**：找到树中距离采样点最近的节点
-3. **局部规划**：从最近节点向采样点延伸一段距离
-4. **重新布线**：检查附近节点，优化路径代价
-5. **渐近最优**：随着迭代增加，路径逐渐收敛到最优
+1. **随机采样**: 在 world_bounds 内随机生成一个点 rnd
+2. **最近邻**: 找到树中距离 rnd 最近的节点 nearest
+3. **扩展**: 从 nearest 向 rnd 扩展 expand_dis 距离，生成新节点 new_node
+4. **重连**: 在 connect_circle_dist 范围内找近邻节点，尝试重连以降低代价
+5. **终止**: 达到 max_iter 或找到 goal 后返回路径
 
-## 从 PythonRobotics 溯源
+## 与 PythonRobotics 的对应
 
-| 项目 | 说明 |
+| 变量 | 含义 |
 |------|------|
-| 源文件 | `rrt_star.py` 的 `main()` |
-| 输入 | `start`, `goal`, `obstacle_list` |
-| 输出 | `path_x`, `path_y` |
-| 配置类 | `RRTStar` 类 |
-| 障碍物格式 | 圆形障碍物列表 |
-| 终止条件 | 达到最大迭代或找到目标 |
+| `start` | 起点 [x, y] |
+| `goal` | 终点 [x, y] |
+| `obstacle_list` | 圆形障碍物 [[x, y, radius], ...] |
+| `rand_area` | 随机采样区域 [min, max] |
+| `expand_dis` | 每次扩展距离 [m] |
+| `path_resolution` | 路径点分辨率 [m] |
+| `goal_sample_rate` | 直接采样 goal 的概率 [%] |
+| `max_iter` | 最大迭代次数 |
+| `connect_circle_dist` | 重连搜索半径 [m] |
+| `robot_radius` | 机器人半径 [m] |
 
-### Config 可调参数说明
+### 关键参数（可调）
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
-| `robot_radius` | 0.5 m | 机器人半径 |
-| `max_iter` | 1000 | 最大迭代次数 |
-| `connect_circle_dist` | 50.0 | 重新布线搜索半径 |
-| `goal_sample_rate` | 5 | 目标点采样概率（%） |
-| `random_seed` | 0 | 随机种子（0=随机） |
+| `expand_dis` | 30.0 m | 每次扩展距离，影响树生长速度 |
+| `path_resolution` | 1.0 m | 路径点密度 |
+| `goal_sample_rate` | 20 | 直接采样 goal 的概率，加速收敛 |
+| `max_iter` | 300 | 最大迭代次数，越大路径越优 |
+| `connect_circle_dist` | 50.0 m | 重连搜索半径，影响优化程度 |
+| `robot_radius` | 0.0 m | 机器人半径 |
+| `random_seed` | None | 固定随机种子可复现结果 |
 
-## 关键 knowhow
+## 扩展 knowhow
 
-> **实验前必做 checklist**
+> **提示**: 在 autopath 实验时关注这些点
 
-- [ ] 设置合适的随机种子保证可重复性
-- [ ] 根据环境大小调整 connect_circle_dist
-- [ ] 调整 goal_sample_rate 平衡探索与目标导向
+- [ ] 调整 max_iter 观察路径质量与计算时间关系
+- [ ] 调整 connect_circle_dist 影响重连优化程度
+- [ ] 固定 random_seed 确保实验可复现
+- [ ] 调整 goal_sample_rate 加速收敛到 goal
 
-### 在 autopath 中的指标
+### 在 autopath 中的指标定义
 
-- **success_rate**：能否找到可行路径到达目标
-- **avg_path_length**：路径总长度（米），随迭代增加优化
-- **plan_time_ms**：单次规划耗时（毫秒），与迭代次数相关
+- **success_rate**: 成功到达 goal 的测试地图比例
+- **avg_path_length**: 路径点之间的欧氏距离累加（米）
+- **plan_time_ms**: `planning()` 函数执行时间（毫秒）
 
-## 常见变体
+## 已知局限
 
-- RRT-Connect（双向扩展）
-- RRT#（更快收敛）
-- Informed RRT*（目标区域采样加速）
+- 随机性导致结果不稳定（需固定种子）
+- 狭窄通道难以采样到
+- 需要足够迭代次数才能趋于最优
 
-## 参考文献
+## 与 Dijkstra/A* 的区别
 
-- Karaman, S., & Frazzoli, E. (2011). Sampling-based algorithms for optimal motion planning.
-- PythonRobotics README: PathPlanning/RRTStar
+| 特性 | Dijkstra/A* | RRT* |
+|------|-------------|------|
+| 搜索方式 | 网格遍历 | 随机采样 |
+| 最优性 | 保证最优 | 渐近最优 |
+| 高维空间 | 计算量大 | 效率较高 |
+| 地图类型 | 网格地图 | 连续空间 |
+
+## 参考
+
+- PythonRobotics: https://github.com/AtsushiSakai/PythonRobotics/tree/master/PathPlanning/RRTStar
+- Paper: "Sampling-based Algorithms for Optimal Motion Planning" (Karaman & Frazzoli, 2011)

@@ -1,8 +1,8 @@
 ---
-id: path_planning/dijkstra
-title: Dijkstra's Algorithm
+id: path-planning/dijkstra
+title: Dijkstra (Grid-based Shortest Path)
 domain: path_planning
-tags: [global, grid-based, shortest-path, deterministic]
+tags: [global, grid, deterministic, optimal]
 phase: 2
 source:
   repo: https://github.com/AtsushiSakai/PythonRobotics
@@ -13,72 +13,77 @@ autopath:
   editable_in_planner:
     - resolution
     - robot_radius
-    - weight
+    - motion_model
   frozen_risk: low
   do_not_phase2:
-    - change grid structure
-    - modify obstacle representation
-    - switch to continuous space
+    - 切换到 A*/RRT*/DWA
+    - 修改 prepare.py 指标计算
+    - 删除碰撞检测
+    - 改变地图格式
 ---
 
-## 算法概述
+## 简介
 
-Dijkstra 算法是一种贪心算法，用于在加权图中寻找从起点到所有其他节点的最短路径。它通过维护一个优先队列，每次选择距离起点最近的未访问节点进行扩展。
+Dijkstra 算法是一种经典的**全局路径规划算法**，基于网格搜索，保证找到最短路径。
+
+核心思想：从起点开始，逐步扩展到所有可达节点，按代价从小到大依次访问，直到到达终点。
 
 ## 适用场景 / 不适用场景
 
 | 适用 | 不适用 |
 |------|--------|
-| 静态环境全局路径规划 | 动态障碍环境 |
-| 非负权边的图 | 含负权边的图 |
-| 需要最优路径 | 实时性要求极高 |
+| 静态地图、全局规划 | 动态障碍、实时避障 |
+| 需要最优路径 | 高维空间（计算量大） |
+| 网格地图 | 连续空间（需离散化） |
 
-## 核心原理
+## 核心步骤
 
-1. **初始化**：设置起点距离为0，其他所有节点距离为无穷大
-2. **优先队列**：使用优先队列存储待扩展节点，按距离排序
-3. **松弛操作**：对每个邻居节点，尝试更新最短距离
-4. **终止条件**：到达目标节点或队列为空
+1. **初始化**: 将起点加入 open_set，cost=0
+2. **扩展**: 从 open_set 取出 cost 最小的节点，扩展其邻居
+3. **更新**: 若邻居节点未被访问或找到更短路径，更新其 cost
+4. **终止**: 当终点被访问时，回溯得到路径
 
-## 从 PythonRobotics 溯源
+## 与 PythonRobotics 的对应
 
-| 项目 | 说明 |
+| 变量 | 含义 |
 |------|------|
-| 源文件 | `dijkstra.py` 的 `main()` |
-| 输入 | `start`, `goal`, `grid` |
-| 输出 | `path_x`, `path_y` |
-| 配置类 | `Dijkstra` 类 |
-| 障碍物格式 | 栅格地图 `grid[0,0]` 为障碍 |
-| 终止条件 | 当前节点为目标节点 |
+| `ox, oy` | 障碍物边界点列表 |
+| `resolution` | 网格分辨率 [m] |
+| `robot_radius` | 机器人半径 [m] |
+| `Node` | 网格节点 (x_index, y_index, cost, parent) |
+| `open_set` | 待访问节点字典 |
+| `closed_set` | 已访问节点字典 |
+| `motion` | 8 方向运动模型 |
 
-### Config 可调参数说明
+### 关键参数（可调）
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
-| `resolution` | 0.1 m | 栅格分辨率 |
-| `robot_radius` | 0.5 m | 机器人半径 |
-| `weight` | 1.0 | 路径代价权重 |
+| `resolution` | 2.0 m | 网格分辨率，越小精度越高但计算量增大 |
+| `robot_radius` | 1.0 m | 机器人半径，用于障碍物膨胀 |
+| `motion_model` | 8-dir | 8 方向（含对角线）或 4 方向（仅水平/垂直） |
 
-## 关键 knowhow
+## 扩展 knowhow
 
-> **实验前必做 checklist**
+> **提示**: 在 autopath 实验时关注这些点
 
-- [ ] 确认栅格分辨率适合机器人尺寸
-- [ ] 检查起点和终点是否在自由空间
-- [ ] 确保障碍物已正确膨胀
+- [ ] 调整 resolution 观察路径精度与计算时间权衡
+- [ ] 对比 4-dir 与 8-dir motion model 的路径长度差异
+- [ ] 测试不同 robot_radius 对狭窄通道的影响
 
-### 在 autopath 中的指标
+### 在 autopath 中的指标定义
 
-- **success_rate**：能否找到可行路径到达目标
-- **avg_path_length**：路径总长度（米）
-- **plan_time_ms**：单次规划耗时（毫秒）
+- **success_rate**: 成功到达 goal 的测试地图比例
+- **avg_path_length**: 路径点之间的欧氏距离累加（米）
+- **plan_time_ms**: `planning()` 函数执行时间（毫秒）
 
-## 常见变体
+## 已知局限
 
-- Dijkstra with Fibonacci heap（更优时间复杂度）
-- 双向 Dijkstra（从起点和终点同时搜索）
+- 计算复杂度 O(V²)，大地图效率低
+- 无启发式引导，搜索方向随机
+- 不适合动态障碍场景
 
-## 参考文献
+## 参考
 
-- Dijkstra, E. W. (1959). A note on two problems in connexion with graphs.
-- PythonRobotics README: PathPlanning/Dijkstra
+- PythonRobotics: https://github.com/AtsushiSakai/PythonRobotics/tree/master/PathPlanning/Dijkstra
+- Wikipedia: https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm

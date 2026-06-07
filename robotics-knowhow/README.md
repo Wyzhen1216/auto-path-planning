@@ -1,52 +1,49 @@
 # Robotics Knowhow 知识库
 
-面向路径规划自进化（autopath）的算法 knowhow 文档库，素材以 [PythonRobotics](https://github.com/AtsushiSakai/PythonRobotics) 为骨架。
+面向路径规划 **Portfolio 自进化**（autopath Phase 3）的算法 knowhow 文档库。
+
+---
 
 ## 当前阶段
 
 | 步骤 | 状态 |
 |------|------|
-| 0 定范围 | 完成 — DWA，见 PROJECT_DECISIONS.md |
-| 1 知识库骨架 | 完成 |
-| 1b Phase 2 决策 | **进行中** — 扩展 Dijkstra、A*、RRT* |
-| 2 跑通 DWA demo | 待做 |
-| 3 autopath/ | 待做 |
+| Phase 1 DWA | ✅ 完成 — 最佳 e77f895 |
+| Phase 2 多算法接线 | ✅ Dijkstra / A* / RRT* + prepare |
+| **Phase 3 Portfolio** | ✅ 框架就绪 — `evolution_mode: portfolio` |
+| Phase 4 Pipeline 组合 | 未开始 |
 
-## 目录
+---
+
+## Phase 3 要点
+
+- [registry.yaml](registry.yaml) — `portfolio_allowed_algorithms`
+- [agent/search-policy.md](agent/search-policy.md) — Agent 每轮流程
+- 仓库根 [portfolio_manifest.yaml](../portfolio_manifest.yaml) — 本轮算法声明
+- `baselines/<algo>.json` — 分算法 baseline（prepare 生成）
+
+---
+
+## 目录结构
 
 ```
 robotics-knowhow/
-├── PROJECT_DECISIONS.md    # 锁定决策（Phase 1 + Phase 2）
+├── PROJECT_DECISIONS.md   # Phase 1–3 决策
+├── registry.yaml          # evolution_mode + 算法注册
 ├── index.md               # 选型树
-├── registry.yaml          # 算法注册表
-├── README.md              # 本文件
-├── sources/
-│   └── pythonrobotics.md  # PythonRobotics 溯源
-├── maps/
-│   └── README.md          # 地图格式规范
-├── domains/
-│   └── path-planning/     # 算法卡片目录
-│       ├── _template.md   # 卡片模板
-│       ├── dwa.md         # DWA 卡片
-│       ├── dijkstra.md    # Dijkstra 卡片
-│       ├── astar.md       # A* 卡片
-│       └── rrt-star.md    # RRT* 卡片
-└── agent/
-    └── search-policy.md   # Agent 搜索策略
+├── agent/search-policy.md # Portfolio 流程
+├── domains/path-planning/ # 算法卡片
+├── maps/README.md         # 地图 JSON 规格
+└── sources/pythonrobotics.md
 ```
 
-## 算法卡片列表
-
-| 算法 | 阶段 | 类型 | 卡片路径 |
-|------|------|------|----------|
-| DWA | Phase 1 | 局部 | domains/path-planning/dwa.md |
-| Dijkstra | Phase 2 | 全局/Grid | domains/path-planning/dijkstra.md |
-| A* | Phase 2 | 全局/Grid | domains/path-planning/astar.md |
-| RRT* | Phase 2 | 全局/Sampling | domains/path-planning/rrt-star.md |
+---
 
 ## 与 autopath
 
-autopath 将引用本库的：
-- `registry.yaml` — 确定当前激活算法
-- `agent/search-policy.md` — Agent 搜索边界
-- `domains/path-planning/*.md` — 算法具体参数与约束
+| autopath 文件 | knowhow 引用 |
+|---------------|--------------|
+| `prepare.py` | registry、maps 目录 |
+| `planner.py` | 卡片 `editable_in_planner` |
+| `portfolio_manifest.yaml` | registry 白名单 |
+| `program.md` | search-policy + PROJECT_DECISIONS |

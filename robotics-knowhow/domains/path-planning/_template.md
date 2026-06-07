@@ -1,78 +1,75 @@
 ---
-id: path_planning/{algorithm_id}
-title: {Algorithm Name}
+id: path-planning/ALGORITHM_NAME
+title: ALGORITHM_FULL_NAME
 domain: path_planning
-tags: [{tag1}, {tag2}, ...]
-phase: {phase_number}
+tags: [TAG1, TAG2, TAG3]
+phase: PHASE_NUMBER
 source:
   repo: https://github.com/AtsushiSakai/PythonRobotics
-  path: PathPlanning/{Directory}/{filename}.py
+  path: PathPlanning/ALGORITHM_PATH
   license: MIT
 autopath:
-  algorithm_family: {algorithm_id}
+  algorithm_family: ALGORITHM_FAMILY
   editable_in_planner:
-    - param1
-    - param2
-    - param3
-  frozen_risk: {low/medium/high}
-  do_not_phase{phase}:
-    - action1
-    - action2
+    - PARAM1
+    - PARAM2
+    - PARAM3
+  frozen_risk: low | medium | high
+  do_not_phase2:
+    - 禁止操作1
+    - 禁止操作2
 ---
 
-## 算法概述
+## 简介
 
-{算法的核心思想和特点}
+简要描述算法原理和适用场景。
 
 ## 适用场景 / 不适用场景
 
 | 适用 | 不适用 |
 |------|--------|
-| 场景1 | 场景2 |
+| 场景1 | 场景1 |
+| 场景2 | 场景2 |
 
-## 核心原理
+## 核心步骤
 
-1. **原理1**：简要说明
-2. **原理2**：简要说明
+1. **步骤1**: 描述
+2. **步骤2**: 描述
+3. **步骤3**: 描述
 
-## 从 PythonRobotics 溯源
+## 与 PythonRobotics 的对应
 
-| 项目 | 说明 |
+| 变量 | 含义 |
 |------|------|
-| 源文件 | `{filename}.py` 的 `main()` |
-| 输入 `x` | 状态向量 `[...]` |
-| 输出 `u` | 控制向量 `[...]` |
-| 配置类 | `Config` 类，包含参数 |
-| 障碍物格式 | `Config.ob`，共 N 个 |
-| 终止条件 | `{条件描述}` |
+| 变量1 | 含义1 |
+| 变量2 | 含义2 |
 
-### Config 可调参数说明
+### Config 关键参数（可调）
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
-| `param1` | value | 描述 |
-| `param2` | value | 描述 |
+| PARAM1 | VALUE1 | DESC1 |
+| PARAM2 | VALUE2 | DESC2 |
 
-## 关键 knowhow
+## 扩展 knowhow
 
-> **实验前必做 checklist**
+> **提示**: 在 autopath 实验时关注这些点
 
-- [ ] 检查项1
-- [ ] 检查项2
-- [ ] 检查项3
+- [ ] checklist 1
+- [ ] checklist 2
 
-### 在 autopath 中的指标
+### 在 autopath 中的指标定义
 
-- **success_rate**：成功率描述
-- **avg_path_length**：路径长度描述
-- **plan_time_ms**：规划时间描述
+- **success_rate**: 定义
+- **avg_path_length**: 定义
+- **plan_time_ms**: 定义
 
-## 常见变体
+## 已知局限
 
-- 变体1
-- 变体2
+- 局限1
+- 局限2
 
-## 参考文献
+## 参考
 
-- Author, Paper Title, Year
-- PythonRobotics README
+- PythonRobotics 文档链接
+- 相关论文链接

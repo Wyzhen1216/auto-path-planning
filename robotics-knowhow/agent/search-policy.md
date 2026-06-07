@@ -1,53 +1,100 @@
-# Agent 搜索策略 — Phase 2
+# Agent 搜索策略 — Phase 3 Portfolio
 
-完整决策见 ../PROJECT_DECISIONS.md。
+完整决策见 [../PROJECT_DECISIONS.md](../PROJECT_DECISIONS.md)。
 
-## 目标指标顺序
+---
 
-success_rate > avg_path_length > plan_time_ms
+## 模式
 
-## 算法选择流程
+`registry.yaml` 中 `evolution_mode: portfolio` 时启用 **Portfolio 自进化**：
+
+- Agent **每轮**从 `portfolio_allowed_algorithms` 中**自选**一个算法
+- 只与该算法自己的 `baselines/<algo>.json` 比较
+- **禁止**跨算法比较 path_length（地图与 eval_mode 不同）
+
+`evolution_mode: locked` 时退回 Phase 2：人类锁 `active_algorithm`。
+
+---
+
+## Portfolio 每轮流程
 
 ```
-1. 读取 registry.yaml → 获取 active_algorithm
-2. 根据 active_algorithm 读取对应算法卡片
-3. 从卡片中获取 editable_in_planner 列表
-4. 只修改 planner.py 中列表内的参数
+1. 读 registry.yaml + index.md 选型
+2. 决定本轮算法（可继续上一轮或切换）
+3. 若切换：Copy-Item planners\<algo>.py planner.py -Force
+4. 更新 portfolio_manifest.yaml 的 algorithm + rationale
+5. 读对应 knowhow 卡片，只改 planner.py 内 editable 参数/逻辑
+6. git add planner.py portfolio_manifest.yaml && git commit
+7. python prepare.py --mode full --notes "algo=<algo> | hyp=... | change=..."
+8. better_than_baseline 对比 baselines/<algo>.json → keep 或 rollback
+9. 写 experiment_log.md
 ```
 
-## 当前支持的算法
+---
 
-| 算法 | eval_mode | 地图目录 | 卡片路径 |
-|------|-----------|----------|----------|
-| dwa | grid | autopath/maps/grid | domains/path-planning/dwa.md |
-| dijkstra | grid | autopath/maps/grid | domains/path-planning/dijkstra.md |
-| astar | grid | autopath/maps/grid | domains/path-planning/astar.md |
-| rrt_star | sampling | autopath/maps/sampling | domains/path-planning/rrt-star.md |
+## 算法与地图
 
-## 修改权限
+| 算法 | 卡片 | eval_mode | maps_dir | 快照 |
+|------|------|-----------|----------|------|
+| dijkstra | [dijkstra.md](../domains/path-planning/dijkstra.md) | grid | maps/grid/ | planners/dijkstra.py |
+| astar | [astar.md](../domains/path-planning/astar.md) | grid | maps/grid/ | planners/astar.py |
+| rrt_star | [rrt-star.md](../domains/path-planning/rrt-star.md) | sampling | maps/sampling/ | planners/rrt_star.py |
+| dwa | [dwa.md](../domains/path-planning/dwa.md) | dwa | maps/dwa/ | planners/dwa.py |
 
-### 允许
+**评测始终调用 `planner.py`**（不是 `planners/` 目录）。切换算法必须复制快照到 `planner.py`。
 
-根据 active_algorithm 对应的卡片，修改 `editable_in_planner` 中列出的参数：
+---
 
-- **DWA**: to_goal_cost_gain, speed_cost_gain, obstacle_cost_gain, predict_time, v_resolution, yawrate_resolution, max_speed, max_yawrate, robot_radius, robot_stuck_flag_cons
-- **Dijkstra**: resolution, robot_radius, weight
-- **A***: resolution, robot_radius, heuristic_weight
-- **RRT***: robot_radius, max_iter, connect_circle_dist, goal_sample_rate, random_seed
+## 允许 / 禁止
 
-### 禁止
+**允许修改**：
+- `planner.py`
+- `portfolio_manifest.yaml`（声明本轮算法）
 
-- 改 prepare.py
-- 换算法族（需修改 registry.yaml）
-- 删碰撞检测
-- 改地图格式
-- 加依赖
-- 提交 results.tsv
+**禁止**：
+- `prepare.py`、`program.md`、`maps/`、`planners/` 快照目录
+- 在 planner.py 中混入两种算法的 plan_path 接口（一次只服务一个算法）
+- 删碰撞检测、加 pip 依赖
+- 提交 `results.tsv`、`baselines/`、`experiment_log.md`
 
-## 实验纪律
+---
 
-1. 修改参数 → commit
-2. 运行 quick 评测
-3. 更好则 keep，否则 git reset
-4. 写 results.tsv
-5. 一晚约 500 轮 quick
+## 切换算法示例（PowerShell）
+
+```powershell
+Copy-Item planners\astar.py planner.py -Force
+# 编辑 portfolio_manifest.yaml: algorithm: astar
+python prepare.py --algorithm astar --mode full --notes "algo=astar | hyp=... | change=..."
+```
+
+`--algorithm` 可省略；默认读 `portfolio_manifest.yaml`。
+
+---
+
+## Rollback（禁止 git reset --hard 整仓）
+
+仅撤销本轮 commit，恢复 planner 快照：
+
+```powershell
+git reset HEAD~1
+Copy-Item planners\<本轮algo>.py planner.py -Force
+# 若 manifest 也改了，手动改回或 git checkout HEAD -- portfolio_manifest.yaml
+```
+
+---
+
+## 指标
+
+字典序：success_rate ↑ → avg_path_length ↓ → plan_time_ms ↓
+
+仅与 **本轮 `--algorithm` 对应** 的 baseline 比较。
+
+---
+
+## Setup（Portfolio 首次）
+
+```powershell
+python prepare.py --save-all-baselines --mode full
+```
+
+确认 `baselines/` 下四个 json 均 success_rate=1.0。
