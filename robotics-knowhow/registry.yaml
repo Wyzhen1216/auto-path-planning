@@ -1,69 +1,47 @@
 # 算法注册表
-# Agent 通过此文件决定当前实验哪个算法、用什么地图
+# Agent 通过此文件确定当前实验的算法、地图和源文件路径
 
-# 当前激活的算法（dwa / dijkstra / astar / rrt-star）
+# 当前激活的算法（Agent 一次只进化一个）
 active_algorithm: dijkstra
 
 # 算法配置列表
 algorithms:
-  # 局部避障算法
+  # DWA - 动态窗口法（局部路径规划）
   dwa:
-    name: Dynamic Window Approach
-    eval_mode: local  # 局部规划模式
-    source: PathPlanning/DynamicWindowApproach/dynamic_window_approach.py
-    maps_dir: maps/local/
+    eval_mode: grid
+    source:
+      repo: https://github.com/AtsushiSakai/PythonRobotics
+      path: PathPlanning/DynamicWindowApproach/dynamic_window_approach.py
+    maps_dir: autopath/maps/grid
     knowhow: domains/path-planning/dwa.md
-    description: 基于速度空间采样的局部避障算法，适用于动态环境实时避障
+    description: 动态窗口法，基于速度空间采样的局部避障算法
 
-  # 栅格路径规划算法
+  # Dijkstra - 迪杰斯特拉算法（全局路径规划）
   dijkstra:
-    name: Dijkstra
-    eval_mode: grid  # 栅格规划模式
-    source: PathPlanning/Dijkstra/dijkstra.py
-    maps_dir: maps/grid/
+    eval_mode: grid
+    source:
+      repo: https://github.com/AtsushiSakai/PythonRobotics
+      path: PathPlanning/Dijkstra/dijkstra.py
+    maps_dir: autopath/maps/grid
     knowhow: domains/path-planning/dijkstra.md
-    description: 无启发式最短路径搜索，保证全局最优
+    description: 基于网格的全局最短路径算法
 
+  # A* - A星算法（全局路径规划）
   astar:
-    name: A*
-    eval_mode: grid  # 栅格规划模式
-    source: PathPlanning/AStar/a_star.py
-    maps_dir: maps/grid/
+    eval_mode: grid
+    source:
+      repo: https://github.com/AtsushiSakai/PythonRobotics
+      path: PathPlanning/AStar/a_star.py
+    maps_dir: autopath/maps/grid
     knowhow: domains/path-planning/astar.md
-    description: 带启发式的最优路径搜索，比 Dijkstra 效率更高
+    description: 带启发式的Dijkstra改进版，更高效的全局路径规划
 
-  # 采样式路径规划算法
-  rrt-star:
-    name: RRT*
-    eval_mode: sampling  # 采样规划模式
-    source: PathPlanning/RRTStar/rrt_star.py
-    maps_dir: maps/sampling/
+  # RRT* - 快速扩展随机树（全局路径规划）
+  rrt_star:
+    eval_mode: sampling
+    source:
+      repo: https://github.com/AtsushiSakai/PythonRobotics
+      path: PathPlanning/RRTStar/rrt_star.py
+    maps_dir: autopath/maps/sampling
     knowhow: domains/path-planning/rrt-star.md
-    description: 基于快速扩展随机树的概率路径规划，渐进最优
-
-# 地图格式定义
-map_formats:
-  grid:
-    description: 栅格地图，由网格单元组成
-    required_fields:
-      - resolution    # 栅格分辨率 (m)
-      - robot_radius  # 机器人半径 (m)
-      - start         # 起点坐标 [x, y]
-      - goal          # 终点坐标 [x, y]
-      - obstacles     # 障碍物折线点列表
-
-  sampling:
-    description: 采样空间，由连续坐标组成
-    required_fields:
-      - start             # 起点坐标 [x, y]
-      - goal              # 终点坐标 [x, y]
-      - robot_radius      # 机器人半径 (m)
-      - obstacle_circles  # 圆形障碍物列表 [[x, y, radius], ...]
-      - world_bounds      # 世界边界 [min_x, max_x, min_y, max_y]
-
-  local:
-    description: 局部地图，用于 DWA 等局部规划算法
-    required_fields:
-      - initial          # 初始状态 [x, y, yaw, v, w]
-      - goal             # 目标点 [x, y]
-      - obstacles        # 障碍物点列表
+    description: 基于采样的概率路径规划算法，适用于高维空间

@@ -2,7 +2,7 @@
 id: path_planning/dijkstra
 title: Dijkstra's Algorithm
 domain: path_planning
-tags: [grid, optimal, shortest-path]
+tags: [global, grid-based, shortest-path, deterministic]
 phase: 2
 source:
   repo: https://github.com/AtsushiSakai/PythonRobotics
@@ -13,86 +13,72 @@ autopath:
   editable_in_planner:
     - resolution
     - robot_radius
-    - tie_breaker
+    - weight
   frozen_risk: low
   do_not_phase2:
-    - switch to sampling-based algorithms
-    - modify grid structure
+    - change grid structure
+    - modify obstacle representation
+    - switch to continuous space
 ---
-
-# Dijkstra's Algorithm
 
 ## 算法概述
 
-Dijkstra 算法是一种无启发式的最短路径搜索算法。它从起点开始，逐步向外扩展，直到找到目标点。保证找到最短路径，但在大型地图上效率较低。
+Dijkstra 算法是一种贪心算法，用于在加权图中寻找从起点到所有其他节点的最短路径。它通过维护一个优先队列，每次选择距离起点最近的未访问节点进行扩展。
 
-## 工作原理
+## 适用场景 / 不适用场景
 
-### 核心流程
+| 适用 | 不适用 |
+|------|--------|
+| 静态环境全局路径规划 | 动态障碍环境 |
+| 非负权边的图 | 含负权边的图 |
+| 需要最优路径 | 实时性要求极高 |
 
-1. **初始化**：创建距离矩阵，起点距离设为 0，其他节点设为无穷大
-2. **优先级队列**：使用优先队列存储待访问节点
-3. **松弛操作**：对每个节点的邻居，更新最短路径
-4. **终止条件**：目标节点出队或队列为空
+## 核心原理
 
-### 伪代码
+1. **初始化**：设置起点距离为0，其他所有节点距离为无穷大
+2. **优先队列**：使用优先队列存储待扩展节点，按距离排序
+3. **松弛操作**：对每个邻居节点，尝试更新最短距离
+4. **终止条件**：到达目标节点或队列为空
 
-```python
-def dijkstra(start, goal, grid):
-    dist = {node: infinity for node in grid}
-    dist[start] = 0
-    pq = PriorityQueue([(0, start)])
-    
-    while pq not empty:
-        current_dist, current = pq.pop()
-        
-        if current == goal:
-            return reconstruct_path(current)
-        
-        for neighbor in get_neighbors(current):
-            new_dist = current_dist + distance(current, neighbor)
-            if new_dist < dist[neighbor]:
-                dist[neighbor] = new_dist
-                pq.push((new_dist, neighbor))
-```
-
-## 参数说明
-
-| 参数 | 默认值 | 说明 | 可调范围 |
-|------|--------|------|----------|
-| `resolution` | 0.5 | 栅格分辨率（米） | [0.1, 1.0] |
-| `robot_radius` | 0.5 | 机器人半径（米） | [0.3, 1.0] |
-| `tie_breaker` | 0.0 | 平局打破系数 | [-0.1, 0.1] |
-
-## PythonRobotics 溯源
+## 从 PythonRobotics 溯源
 
 | 项目 | 说明 |
 |------|------|
-| 模块 | `dijkstra.py` |
-| 主函数 | `main()` |
-| 输入 | 栅格地图、起点、终点 |
-| 输出 | 路径点列表 |
-| 数据结构 | 优先队列 + 距离字典 |
+| 源文件 | `dijkstra.py` 的 `main()` |
+| 输入 | `start`, `goal`, `grid` |
+| 输出 | `path_x`, `path_y` |
+| 配置类 | `Dijkstra` 类 |
+| 障碍物格式 | 栅格地图 `grid[0,0]` 为障碍 |
+| 终止条件 | 当前节点为目标节点 |
 
-## autopath 指标
+### Config 可调参数说明
 
-| 指标 | 说明 |
-|------|------|
-| success_rate | 是否找到路径（0 或 1） |
-| avg_path_length | 路径长度（米） |
-| plan_time_ms | 规划耗时（毫秒） |
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `resolution` | 0.1 m | 栅格分辨率 |
+| `robot_radius` | 0.5 m | 机器人半径 |
+| `weight` | 1.0 | 路径代价权重 |
 
-## 特点
+## 关键 knowhow
 
-| 特性 | 说明 |
-|------|------|
-| **最优性** | 保证找到最短路径 |
-| **时间复杂度** | O((V+E)logV)，V=节点数，E=边数 |
-| **空间复杂度** | O(V) |
-| **适用场景** | 小型到中型栅格地图 |
+> **实验前必做 checklist**
 
-## 注意事项
+- [ ] 确认栅格分辨率适合机器人尺寸
+- [ ] 检查起点和终点是否在自由空间
+- [ ] 确保障碍物已正确膨胀
 
-- 无启发式信息，在大型地图上效率较低
-- 适合静态环境下的全局路径规划
-- 不适合动态障碍物场景
+### 在 autopath 中的指标
+
+- **success_rate**：能否找到可行路径到达目标
+- **avg_path_length**：路径总长度（米）
+- **plan_time_ms**：单次规划耗时（毫秒）
+
+## 常见变体
+
+- Dijkstra with Fibonacci heap（更优时间复杂度）
+- 双向 Dijkstra（从起点和终点同时搜索）
+
+## 参考文献
+
+- Dijkstra, E. W. (1959). A note on two problems in connexion with graphs.
+- PythonRobotics README: PathPlanning/Dijkstra

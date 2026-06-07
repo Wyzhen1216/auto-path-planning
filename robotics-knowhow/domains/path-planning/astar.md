@@ -2,7 +2,7 @@
 id: path_planning/astar
 title: A* Algorithm
 domain: path_planning
-tags: [grid, optimal, heuristic, shortest-path]
+tags: [global, grid-based, heuristic, shortest-path]
 phase: 2
 source:
   repo: https://github.com/AtsushiSakai/PythonRobotics
@@ -14,101 +14,74 @@ autopath:
     - resolution
     - robot_radius
     - heuristic_weight
-    - tie_breaker
   frozen_risk: low
   do_not_phase2:
-    - switch to sampling-based algorithms
-    - modify grid structure
+    - change grid structure
+    - modify obstacle representation
+    - switch to continuous space
 ---
-
-# A* Algorithm
 
 ## 算法概述
 
-A* 算法是一种带启发式的最短路径搜索算法。它在 Dijkstra 算法的基础上引入了启发式函数，能够更高效地找到最短路径。是目前最常用的路径规划算法之一。
+A* 算法是 Dijkstra 算法的改进版，通过引入启发式函数来引导搜索方向，显著提高搜索效率。它在计算代价时同时考虑已走距离和预估剩余距离。
 
-## 工作原理
+## 适用场景 / 不适用场景
 
-### 核心流程
+| 适用 | 不适用 |
+|------|--------|
+| 静态环境全局路径规划 | 动态障碍环境 |
+| 已知目标位置 | 无目标或多目标 |
+| 需要最优路径且效率要求高 | 启发式难以定义的场景 |
 
-1. **初始化**：创建 g、h、f 三个代价矩阵
-2. **优先级队列**：使用优先队列存储待访问节点，按 f 值排序
-3. **松弛操作**：对每个节点的邻居，更新 g、h、f 值
-4. **终止条件**：目标节点出队或队列为空
+## 核心原理
 
-### 代价函数
+1. **评估函数**：`f(n) = g(n) + h(n)`
+   - `g(n)`：从起点到节点 n 的实际代价
+   - `h(n)`：从节点 n 到目标的启发式估计
+2. **优先队列**：按 f 值排序扩展节点
+3. **启发式选择**：常用曼哈顿距离或欧几里得距离
+4. **最优性保证**：当 h(n) 是可采纳的（不高估），保证找到最优解
 
-```
-f(n) = g(n) + h(n)
-```
-
-| 分量 | 含义 | 计算方式 |
-|------|------|----------|
-| `g(n)` | 从起点到节点 n 的实际代价 | 累计路径长度 |
-| `h(n)` | 从节点 n 到目标的估计代价 | 启发式函数 |
-| `f(n)` | 总代价估计 | g(n) + h(n) |
-
-### 启发式函数
-
-```python
-# Manhattan 距离（适合网格移动）
-h = |x1 - x2| + |y1 - y2|
-
-# Euclidean 距离（适合自由移动）
-h = sqrt((x1-x2)^2 + (y1-y2)^2)
-
-# Chebyshev 距离（适合八方向移动）
-h = max(|x1-x2|, |y1-y2|)
-```
-
-## 参数说明
-
-| 参数 | 默认值 | 说明 | 可调范围 |
-|------|--------|------|----------|
-| `resolution` | 0.5 | 栅格分辨率（米） | [0.1, 1.0] |
-| `robot_radius` | 0.5 | 机器人半径（米） | [0.3, 1.0] |
-| `heuristic_weight` | 1.0 | 启发式权重 | [0.5, 2.0] |
-| `tie_breaker` | 0.0 | 平局打破系数 | [-0.1, 0.1] |
-
-## PythonRobotics 溯源
+## 从 PythonRobotics 溯源
 
 | 项目 | 说明 |
 |------|------|
-| 模块 | `a_star.py` |
-| 主函数 | `main()` |
-| 输入 | 栅格地图、起点、终点 |
-| 输出 | 路径点列表 |
-| 启发式 | Euclidean 距离 |
-| 数据结构 | 优先队列 + 代价字典 |
+| 源文件 | `a_star.py` 的 `main()` |
+| 输入 | `start`, `goal`, `grid` |
+| 输出 | `path_x`, `path_y` |
+| 配置类 | `AStar` 类 |
+| 障碍物格式 | 栅格地图 `grid[0,0]` 为障碍 |
+| 终止条件 | 当前节点为目标节点 |
 
-## autopath 指标
+### Config 可调参数说明
 
-| 指标 | 说明 |
-|------|------|
-| success_rate | 是否找到路径（0 或 1） |
-| avg_path_length | 路径长度（米） |
-| plan_time_ms | 规划耗时（毫秒） |
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `resolution` | 0.1 m | 栅格分辨率 |
+| `robot_radius` | 0.5 m | 机器人半径 |
+| `heuristic_weight` | 1.0 | 启发式权重（>1加速但可能非最优） |
 
-## 特点
+## 关键 knowhow
 
-| 特性 | 说明 |
-|------|------|
-| **最优性** | 当 h(n) 是可采纳启发式时保证最优 |
-| **时间复杂度** | 取决于启发式质量，通常远优于 Dijkstra |
-| **空间复杂度** | O(V) |
-| **适用场景** | 中小型栅格地图，需要快速规划 |
+> **实验前必做 checklist**
 
-## 与 Dijkstra 的对比
+- [ ] 确认启发式函数是可采纳的
+- [ ] 调整 heuristic_weight 平衡效率与最优性
+- [ ] 检查起点和终点是否在自由空间
 
-| 特性 | Dijkstra | A* |
-|------|----------|----|
-| 启发式 | 无 | 有 |
-| 最优性 | 保证 | 保证（可采纳启发式） |
-| 效率 | 低 | 高 |
-| 内存 | 适中 | 可能更高 |
+### 在 autopath 中的指标
 
-## 注意事项
+- **success_rate**：能否找到可行路径到达目标
+- **avg_path_length**：路径总长度（米），最优时应等于 Dijkstra
+- **plan_time_ms**：单次规划耗时（毫秒），通常快于 Dijkstra
 
-- 启发式函数的选择至关重要
-- `heuristic_weight > 1` 可加速但不保证最优
-- 适合静态环境下的全局路径规划
+## 常见变体
+
+- Weighted A*（非可采纳启发式，更快但可能次优）
+- ARA*（Anytime Repairing A*，逐步优化）
+- Jump Point Search（网格剪枝优化）
+
+## 参考文献
+
+- Hart, P. E., Nilsson, N. J., & Raphael, B. (1968). A formal basis for the heuristic determination of minimum cost paths.
+- PythonRobotics README: PathPlanning/AStar
