@@ -232,3 +232,25 @@
 - **改动**: to_goal_cost_gain 0.25 -> 0.24
 - **指标**: success_rate=1.0, avg_path_length=13.2806, plan_time_ms=74.43, better_than_baseline=True
 - **决策**: rollback 已 reset（略差于 Round 31）
+
+---
+
+# Phase 2 冒烟 Loop（框架验收）
+
+## P2-Smoke-1 | f8026db | rollback | dijkstra
+- **假设**: 冒烟验证 commit → full 评测 → baseline 对比 → rollback 闭环
+- **改动**: resolution 0.5 -> 0.4
+- **指标**: success_rate=1.0, avg_path_length=16.9137, plan_time_ms=43.10, better_than_baseline=False
+- **决策**: rollback 已 reset（路径变长，pipeline 验证通过）
+
+## P2-Smoke-2 | 50132ba | rollback | astar
+- **假设**: 冒烟验证 A* 算法切换与评测链路
+- **改动**: heuristic_weight 1.0 -> 1.2（planner.py 自 planners/astar.py 复制）
+- **指标**: success_rate=1.0, avg_path_length=16.8137, plan_time_ms=18.35, better_than_baseline=False
+- **决策**: rollback 已 reset（指标与 baseline 相同，pipeline 验证通过）
+
+## P2-Smoke-3 | 192da86 | rollback | rrt_star
+- **假设**: 冒烟验证 RRT* 采样评测与固定 random.seed(0)
+- **改动**: goal_sample_rate 20 -> 25（planner.py 自 planners/rrt_star.py 复制）
+- **指标**: success_rate=1.0, avg_path_length=29.3595, plan_time_ms=5.97, better_than_baseline=True
+- **决策**: rollback 已 reset（路径相同、plan_time 略优，冒烟后仍回滚保持 baseline 干净）

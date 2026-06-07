@@ -46,9 +46,13 @@
 
 ## 算法注册表
 
-当前实验算法由 [registry.yaml](registry.yaml) 的 `active_algorithm` 字段控制。
+Phase 3 **Portfolio**：`evolution_mode: portfolio`，Agent 从白名单自选算法。
 
-Agent 一次只进化一个算法，切换需人类手动修改。
+- [registry.yaml](registry.yaml) — `portfolio_allowed_algorithms`
+- [agent/search-policy.md](agent/search-policy.md) — 每轮流程
+- 根目录 `portfolio_manifest.yaml` — 本轮声明
+
+Phase 2 **locked**（已 superseded）：`active_algorithm` 人类锁定单算法。
 
 ---
 

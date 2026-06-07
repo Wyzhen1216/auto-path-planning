@@ -1,0 +1,17 @@
+{
+  "id": "open_room",
+  "name": "open_room",
+  "description": "Bounded open room with a single wall segment",
+  "resolution": 0.5,
+  "robot_radius": 0.3,
+  "start": [1.0, 1.0],
+  "goal": [12.0, 12.0],
+  "world_bounds": [-2.0, 14.0, -2.0, 14.0],
+  "obstacles": [
+    [[-2, -2], [14, -2]],
+    [[14, -2], [14, 14]],
+    [[14, 14], [-2, 14]],
+    [[-2, 14], [-2, -2]],
+    [[8, 2], [8, 10]]
+  ]
+}

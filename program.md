@@ -133,3 +133,125 @@ Chat 回复可简写为同一段的四行 bullet，便于在 Cursor 里滚动浏
 
 - 一晚 full 循环中，出现至少一次 `better_than_baseline=True` 且人类可解释的改动
 - `success_rate` 不得长期低于 baseline；为降 path_length 牺牲成功率视为失败
+
+---
+
+# Phase 2 — 多算法接线（已完成）
+
+`prepare.py --algorithm dwa|dijkstra|astar|rrt_star`；地图见 `maps/dwa|grid|sampling/`。  
+Phase 3 已 supersede「人类锁 active_algorithm」模式。
+
+---
+
+# Phase 3 — Portfolio 自进化（当前）
+
+Agent **每轮从 knowhow 白名单自选一个算法**，只与该算法的 baseline 比较。
+
+## 必读
+
+1. `robotics-knowhow/registry.yaml`（`evolution_mode: portfolio`）
+2. `robotics-knowhow/agent/search-policy.md`
+3. `robotics-knowhow/index.md` 选型表
+4. 本轮算法对应 `domains/path-planning/<algo>.md`
+
+## 三文件 + manifest
+
+| 文件 | 谁改 |
+|------|------|
+| `prepare.py` | **禁止** |
+| `planner.py` | **Agent**（当前轮可执行代码） |
+| `portfolio_manifest.yaml` | **Agent**（声明本轮 `algorithm`） |
+| `planners/*.py` | **禁止**（快照；切换时复制到 planner.py） |
+| `program.md` | 人类 |
+
+**评测始终 import `planner.py`**。切换算法必须：
+
+```powershell
+Copy-Item planners\<algo>.py planner.py -Force
+# 编辑 portfolio_manifest.yaml → algorithm: <algo>
+```
+
+## Setup
+
+```powershell
+cd D:\autopathplanning
+pip install -e .
+python prepare.py --save-all-baselines --mode full
+```
+
+确认 `baselines/dwa.json`、`dijkstra.json`、`astar.json`、`rrt_star.json` 均 `success_rate=1.0`。
+
+切换 planner 后若只跑单算法，可：
+
+```powershell
+python prepare.py --algorithm astar --mode full --save-baseline
+```
+
+## 实验循环（Portfolio Karpathy Loop）
+
+1. **选型**：读 index + 卡片，决定本轮算法（可切换）
+2. **若切换算法**：复制 `planners/<algo>.py` → `planner.py`，更新 `portfolio_manifest.yaml`
+3. **假设**：一句话（含为何选此算法）
+4. **只改** `planner.py`（参数或算法内逻辑，仍在该算法族内）
+5. `git add planner.py portfolio_manifest.yaml && git commit -m "exp(<algo>): <描述>"`
+6. `python prepare.py --mode full --notes "algo=<algo> | hyp=... | change=..."`
+   - 或显式 `--algorithm <algo>`
+7. 读 `results.tsv`：`better_than_baseline` 对比 **`baselines/<algo>.json`**
+   - `True` → **keep**
+   - `False` → rollback（见下）
+8. 追加 `experiment_log.md`
+
+### 实验记录模板（Phase 3）
+
+```markdown
+## P3-Round <N> | <hash> | <keep|rollback> | <algo>
+- **选型**: <为何选此算法 / 是否从上一轮切换>
+- **假设**: <一句话>
+- **改动**: <planner.py 具体改动>
+- **指标**: success_rate=<>, avg_path_length=<>, plan_time_ms=<>, better_than_baseline=<>
+- **决策**: keep / rollback
+```
+
+### Rollback（禁止 `git reset --hard` 整仓）
+
+```powershell
+git reset HEAD~1
+Copy-Item planners\<algo>.py planner.py -Force
+git checkout HEAD -- portfolio_manifest.yaml   # 若 manifest 也提交过
+```
+
+### 禁止
+
+- 改 `prepare.py`、`program.md`、`maps/`、`planners/`
+- 一个 planner.py 里同时混两种 plan 接口
+- 跨算法比较 path_length 决定是否 keep
+- 删碰撞检测、加 pip 依赖
+- 提交 `results.tsv`、`baselines/`、`experiment_log.md`
+
+### 允许
+
+- 每轮换算法（Portfolio 核心）
+- 连续多轮优化同一算法
+- 改 `portfolio_manifest.yaml` 的 `algorithm` 与 `rationale`
+
+## 预算
+
+- **quick**：冒烟，不与 baseline 比（切换算法后建议先 quick）
+- **full**：过夜循环与 baseline 对比
+
+## 启动提示（Phase 3 Agent）
+
+```text
+阅读 D:\autopathplanning\program.md Phase 3 与 robotics-knowhow/agent/search-policy.md。
+若 baselines/ 不全，先 python prepare.py --save-all-baselines --mode full。
+然后 Portfolio 循环：每轮自选算法，更新 portfolio_manifest.yaml，复制快照到 planner.py，
+只改 planner.py，commit 后 python prepare.py --mode full --notes "algo=... | hyp=... | change=..."，
+按 baselines/<algo>.json 决定 keep 或 git reset HEAD~1 + 恢复 planner，写 experiment_log.md。
+持续循环直到我说停。
+```
+
+## 成功标准（Phase 3）
+
+- 至少两个不同算法出现 `better_than_baseline=True` 且可解释
+- 任一算法不得长期 success_rate 低于其 baseline
+

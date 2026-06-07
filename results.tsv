@@ -51,3 +51,12 @@ timestamp_utc	mode	git_commit	success_rate	avg_path_length	plan_time_ms	maps_eva
 2026-06-03T17:47:11.898144+00:00	full	24ef0a5	1.000000	13.276000	75.010478	5	True	hyp=less reverse preference shortens paths | change=min_speed -0.5->-0.4
 2026-06-03T17:48:36.271936+00:00	full	8953c97	1.000000	13.283360	87.420095	5	True	hyp=finer velocity sampling finds better trajectories | change=v_resolution 0.01->0.008
 2026-06-03T17:50:12.741738+00:00	full	f8eb5e5	1.000000	13.280600	74.433605	5	True	hyp=fine-tune goal heading down from 0.25 | change=to_goal_cost_gain 0.25->0.24
+2026-06-07T16:50:54.162241+00:00	dijkstra	full	238d60d	1.000000	16.813708	22.773600	2	baseline_set	
+2026-06-07T16:50:54.901547+00:00	astar	full	238d60d	1.000000	16.813708	18.322800	2	baseline_set	
+2026-06-07T16:50:55.421397+00:00	astar	full	50132ba	1.000000	16.813708	18.347800	2	False	hyp=smoke loop verify pipeline | change=heuristic_weight 1.0->1.2
+2026-06-07T16:50:55.781343+00:00	rrt_star	full	238d60d	1.000000	29.359522	6.906300	1	baseline_set	
+2026-06-07T16:50:56.235663+00:00	rrt_star	full	192da86	1.000000	29.359522	5.968700	1	True	hyp=smoke loop verify pipeline | change=goal_sample_rate 20->25
+2026-06-07T16:51:38.998126+00:00	dijkstra	full	238d60d	1.000000	16.813708	23.234250	2	baseline_set	
+2026-06-07T16:52:21.477275+00:00	dijkstra	full	f8026db	1.000000	16.913708	43.102250	2	False	hyp=smoke loop verify pipeline | change=resolution 0.5->0.4
+2026-06-07T16:52:48.647782+00:00	dijkstra	full	238d60d	1.000000	16.813708	36.747600	2	baseline_set	
+2026-06-07T17:02:59.799129+00:00	dijkstra	full	238d60d	1.000000	16.813708	24.239800	2	False	

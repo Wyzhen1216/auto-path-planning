@@ -1,7 +1,8 @@
 """
 固定评测脚本（对标 autoresearch 的 prepare.py）— Agent 禁止修改。
 
-加载 maps/，调用 planner.dwa_control 做无 GUI 仿真，写 results.tsv。
+Phase 3 Portfolio：Agent 从 registry 白名单选算法，--algorithm 或 portfolio_manifest.yaml。
+分算法 baseline：baselines/<algorithm>.json
 """
 
 from __future__ import annotations
@@ -15,28 +16,60 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
-from planner import config, dwa_control, motion, state_collides
-
 ROOT = Path(__file__).resolve().parent
-MAPS_DIR = ROOT / "maps"
+KNOWHOW = ROOT / "robotics-knowhow"
+REGISTRY_PATH = KNOWHOW / "registry.yaml"
+MANIFEST_PATH = ROOT / "portfolio_manifest.yaml"
 RESULTS_PATH = ROOT / "results.tsv"
-BASELINE_PATH = ROOT / "baseline_results.json"
+BASELINE_PATH = ROOT / "baseline_results.json"  # 兼容旧 Phase 1/2
+BASELINES_DIR = ROOT / "baselines"
+
+ALL_ALGORITHMS = ("dwa", "dijkstra", "astar", "rrt_star")
 
 MAX_STEPS = 800
 
-# quick：3 张代表性地图，约 30s/轮，适合过夜循环
-QUICK_MAPS = ["pr_default.json", "obstacle_field.json", "narrow_passage.json"]
+QUICK_DWA_MAPS = ["pr_default.json", "obstacle_field.json", "narrow_passage.json"]
+QUICK_GRID_MAPS = ["simple_corridor.json"]
+QUICK_SAMPLING_MAPS = ["circles_obstacles.json"]
+
+ALGO_MAPS_DIR = {
+    "dwa": ROOT / "maps" / "dwa",
+    "dijkstra": ROOT / "maps" / "grid",
+    "astar": ROOT / "maps" / "grid",
+    "rrt_star": ROOT / "maps" / "sampling",
+}
 
 
 @dataclass
-class MapSpec:
+class DwaMapSpec:
     map_id: str
     goal: np.ndarray
     initial: np.ndarray
     obstacles: np.ndarray
+
+
+@dataclass
+class GridMapSpec:
+    map_id: str
+    resolution: float
+    robot_radius: float
+    start: np.ndarray
+    goal: np.ndarray
+    obstacles: list[list[list[float]]]
+
+
+@dataclass
+class SamplingMapSpec:
+    map_id: str
+    start: np.ndarray
+    goal: np.ndarray
+    robot_radius: float
+    obstacle_circles: list[list[float]]
+    world_bounds: list[float]
 
 
 @dataclass
@@ -58,29 +91,173 @@ class EvalSummary:
     per_map: list[MapResult]
 
 
-def load_map(path: Path) -> MapSpec:
+def _parse_yaml_scalar(line: str) -> str:
+    return line.split(":", 1)[1].strip().split("#")[0].strip().strip('"').strip("'")
+
+
+def read_registry() -> dict[str, Any]:
+    """轻量 YAML 解析（无 PyYAML 依赖）。"""
+    result: dict[str, Any] = {
+        "evolution_mode": "locked",
+        "active_algorithm": "dijkstra",
+        "portfolio_allowed_algorithms": list(ALL_ALGORITHMS),
+    }
+    if not REGISTRY_PATH.exists():
+        return result
+
+    text = REGISTRY_PATH.read_text(encoding="utf-8")
+    in_portfolio_list = False
+    portfolio: list[str] = []
+
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("evolution_mode:"):
+            result["evolution_mode"] = _parse_yaml_scalar(line)
+            in_portfolio_list = False
+        elif line.startswith("active_algorithm:"):
+            result["active_algorithm"] = _parse_yaml_scalar(line)
+            in_portfolio_list = False
+        elif line.startswith("portfolio_allowed_algorithms:"):
+            in_portfolio_list = True
+            portfolio = []
+        elif in_portfolio_list:
+            if line.startswith("- "):
+                portfolio.append(_parse_yaml_scalar("x:" + line[1:].strip()))
+            else:
+                in_portfolio_list = False
+        elif line.startswith("algorithms:"):
+            in_portfolio_list = False
+
+    if portfolio:
+        result["portfolio_allowed_algorithms"] = portfolio
+    return result
+
+
+def read_portfolio_manifest() -> str | None:
+    if not MANIFEST_PATH.exists():
+        return None
+    for line in MANIFEST_PATH.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("algorithm:"):
+            return _parse_yaml_scalar(stripped)
+    return None
+
+
+def resolve_default_algorithm(explicit: str | None) -> str:
+    reg = read_registry()
+    if explicit:
+        algo = explicit
+    elif reg["evolution_mode"] == "portfolio":
+        algo = read_portfolio_manifest() or reg["active_algorithm"]
+    else:
+        algo = reg["active_algorithm"]
+
+    allowed = reg["portfolio_allowed_algorithms"]
+    if reg["evolution_mode"] == "portfolio" and algo not in allowed:
+        raise ValueError(
+            f"Algorithm '{algo}' not in portfolio_allowed_algorithms: {allowed}"
+        )
+    if algo not in ALL_ALGORITHMS:
+        raise ValueError(f"Unknown algorithm: {algo}")
+    return algo
+
+
+def read_active_algorithm() -> str:
+    return read_registry()["active_algorithm"]
+
+
+def baseline_file(algorithm: str) -> Path:
+    return BASELINES_DIR / f"{algorithm}.json"
+
+
+def load_dwa_map(path: Path) -> DwaMapSpec:
     data = json.loads(path.read_text(encoding="utf-8"))
-    return MapSpec(
-        map_id=data["id"],
+    map_id = data.get("id") or data.get("name") or path.stem
+    return DwaMapSpec(
+        map_id=map_id,
         goal=np.array(data["goal"], dtype=float),
         initial=np.array(data["initial"], dtype=float),
         obstacles=np.array(data["obstacles"], dtype=float),
     )
 
 
-def list_map_files(mode: str) -> list[Path]:
+def load_grid_map(path: Path) -> GridMapSpec:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    map_id = data.get("id") or data.get("name") or path.stem
+    return GridMapSpec(
+        map_id=map_id,
+        resolution=float(data["resolution"]),
+        robot_radius=float(data["robot_radius"]),
+        start=np.array(data["start"], dtype=float),
+        goal=np.array(data["goal"], dtype=float),
+        obstacles=data["obstacles"],
+    )
+
+
+def load_sampling_map(path: Path) -> SamplingMapSpec:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    map_id = data.get("id") or data.get("name") or path.stem
+    return SamplingMapSpec(
+        map_id=map_id,
+        start=np.array(data["start"], dtype=float),
+        goal=np.array(data["goal"], dtype=float),
+        robot_radius=float(data["robot_radius"]),
+        obstacle_circles=data["obstacle_circles"],
+        world_bounds=[float(v) for v in data["world_bounds"]],
+    )
+
+
+def list_map_files(algorithm: str, mode: str) -> list[Path]:
+    maps_dir = ALGO_MAPS_DIR[algorithm]
     if mode == "quick":
-        names = QUICK_MAPS
+        if algorithm == "dwa":
+            names = QUICK_DWA_MAPS
+        elif algorithm in ("dijkstra", "astar"):
+            names = QUICK_GRID_MAPS
+        else:
+            names = QUICK_SAMPLING_MAPS
     else:
-        names = sorted(p.name for p in MAPS_DIR.glob("*.json"))
-    paths = [MAPS_DIR / n for n in names]
+        names = sorted(p.name for p in maps_dir.glob("*.json"))
+    paths = [maps_dir / n for n in names]
     missing = [p for p in paths if not p.exists()]
     if missing:
         raise FileNotFoundError(f"Missing map files: {missing}")
     return paths
 
 
-def simulate_map(spec: MapSpec) -> MapResult:
+def obstacles_segments_to_ox_oy(
+    obstacles: list[list[list[float]]], step: float = 0.5
+) -> tuple[list[float], list[float]]:
+    ox: list[float] = []
+    oy: list[float] = []
+    for segment in obstacles:
+        for i in range(len(segment) - 1):
+            x1, y1 = segment[i]
+            x2, y2 = segment[i + 1]
+            dist = math.hypot(x2 - x1, y2 - y1)
+            n = max(int(dist / step), 1)
+            for j in range(n + 1):
+                t = j / n
+                ox.append(x1 + t * (x2 - x1))
+                oy.append(y1 + t * (y2 - y1))
+    return ox, oy
+
+
+def path_length_xy(rx: list[float], ry: list[float]) -> float:
+    total = 0.0
+    for i in range(len(rx) - 1):
+        total += math.hypot(rx[i + 1] - rx[i], ry[i + 1] - ry[i])
+    return total
+
+
+def simulate_dwa_map(spec: DwaMapSpec, *, use_snapshot: bool = False) -> MapResult:
+    if use_snapshot:
+        from planners.dwa import config, dwa_control, motion, state_collides
+    else:
+        from planner import config, dwa_control, motion, state_collides
+
     x = spec.initial.copy()
     goal = spec.goal
     ob = spec.obstacles
@@ -100,20 +277,17 @@ def simulate_map(spec: MapSpec) -> MapResult:
         x_prev = x.copy()
         x = motion(x, u, cfg.dt)
         steps += 1
-
         path_length += math.hypot(x[0] - x_prev[0], x[1] - x_prev[1])
 
         if state_collides(x, ob, cfg):
             collision = True
             break
 
-        dist_to_goal = math.hypot(x[0] - goal[0], x[1] - goal[1])
-        if dist_to_goal <= cfg.robot_radius:
+        if math.hypot(x[0] - goal[0], x[1] - goal[1]) <= cfg.robot_radius:
             success = True
             break
 
     mean_plan = float(np.mean(plan_times_ms)) if plan_times_ms else float("inf")
-
     return MapResult(
         map_id=spec.map_id,
         success=success and not collision,
@@ -122,6 +296,86 @@ def simulate_map(spec: MapSpec) -> MapResult:
         mean_plan_time_ms=mean_plan,
         collision=collision,
     )
+
+
+def simulate_grid_map(spec: GridMapSpec, algorithm: str, *, use_snapshot: bool = False) -> MapResult:
+    if use_snapshot:
+        if algorithm == "dijkstra":
+            from planners.dijkstra import config, plan_path
+        elif algorithm == "astar":
+            from planners.astar import config, plan_path
+        else:
+            raise ValueError(f"Unsupported grid algorithm: {algorithm}")
+    else:
+        from planner import config, plan_path
+
+    ox, oy = obstacles_segments_to_ox_oy(spec.obstacles, step=min(config.resolution, 0.5))
+    sx, sy = float(spec.start[0]), float(spec.start[1])
+    gx, gy = float(spec.goal[0]), float(spec.goal[1])
+
+    t0 = time.perf_counter()
+    rx, ry = plan_path(sx, sy, gx, gy, ox, oy)
+    plan_ms = (time.perf_counter() - t0) * 1000.0
+
+    success = len(rx) > 0 and len(ry) > 0
+    if success:
+        end_dist = math.hypot(rx[0] - gx, ry[0] - gy)
+        success = end_dist <= config.resolution * 1.5
+    path_len = path_length_xy(rx, ry) if success else float("nan")
+
+    return MapResult(
+        map_id=spec.map_id,
+        success=success,
+        steps=len(rx),
+        path_length=path_len,
+        mean_plan_time_ms=plan_ms,
+        collision=not success,
+    )
+
+
+def simulate_sampling_map(spec: SamplingMapSpec, *, use_snapshot: bool = False) -> MapResult:
+    import random
+
+    if use_snapshot:
+        from planners.rrt_star import config, plan_path
+    else:
+        from planner import config, plan_path
+
+    random.seed(0)
+
+    sx, sy = float(spec.start[0]), float(spec.start[1])
+    gx, gy = float(spec.goal[0]), float(spec.goal[1])
+
+    t0 = time.perf_counter()
+    rx, ry = plan_path(
+        sx, sy, gx, gy, spec.obstacle_circles, spec.world_bounds, spec.robot_radius
+    )
+    plan_ms = (time.perf_counter() - t0) * 1000.0
+
+    success = len(rx) > 0 and len(ry) > 0
+    if success:
+        end_dist = math.hypot(rx[0] - gx, ry[0] - gy)
+        success = end_dist <= config.expand_dis * 1.5
+    path_len = path_length_xy(rx, ry) if success else float("nan")
+
+    return MapResult(
+        map_id=spec.map_id,
+        success=success,
+        steps=len(rx),
+        path_length=path_len,
+        mean_plan_time_ms=plan_ms,
+        collision=not success,
+    )
+
+
+def simulate_map(path: Path, algorithm: str, *, use_snapshot: bool = False) -> MapResult:
+    if algorithm == "dwa":
+        return simulate_dwa_map(load_dwa_map(path), use_snapshot=use_snapshot)
+    if algorithm in ("dijkstra", "astar"):
+        return simulate_grid_map(load_grid_map(path), algorithm, use_snapshot=use_snapshot)
+    if algorithm == "rrt_star":
+        return simulate_sampling_map(load_sampling_map(path), use_snapshot=use_snapshot)
+    raise ValueError(f"Unknown algorithm: {algorithm}")
 
 
 def aggregate(results: list[MapResult]) -> EvalSummary:
@@ -146,7 +400,6 @@ def aggregate(results: list[MapResult]) -> EvalSummary:
 
 
 def is_better(candidate: EvalSummary, baseline: EvalSummary) -> bool:
-    """与 PROJECT_DECISIONS / knowhow 一致：success_rate ↑, path ↓, time ↓。"""
     if candidate.success_rate > baseline.success_rate + 1e-12:
         return True
     if candidate.success_rate < baseline.success_rate - 1e-12:
@@ -171,21 +424,36 @@ def git_commit_short() -> str:
         return "no-git"
 
 
-def save_baseline(summary: EvalSummary) -> None:
-    payload = {
+def save_baseline(summary: EvalSummary, algorithm: str) -> None:
+    BASELINES_DIR.mkdir(parents=True, exist_ok=True)
+    payload: dict[str, Any] = {
+        "algorithm": algorithm,
         "success_rate": summary.success_rate,
         "avg_path_length": summary.avg_path_length,
         "plan_time_ms": summary.plan_time_ms,
         "maps_evaluated": summary.maps_evaluated,
         "recorded_at": datetime.now(timezone.utc).isoformat(),
     }
+    baseline_file(algorithm).write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    # 兼容旧工具链：同步写一份指向当前算法的 baseline_results.json
     BASELINE_PATH.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
-def load_baseline() -> EvalSummary | None:
-    if not BASELINE_PATH.exists():
+def load_baseline(algorithm: str) -> EvalSummary | None:
+    path = baseline_file(algorithm)
+    if not path.exists():
+        if BASELINE_PATH.exists():
+            data = json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
+            if data.get("algorithm", algorithm) == algorithm:
+                return EvalSummary(
+                    success_rate=data["success_rate"],
+                    avg_path_length=data["avg_path_length"],
+                    plan_time_ms=data["plan_time_ms"],
+                    maps_evaluated=data["maps_evaluated"],
+                    per_map=[],
+                )
         return None
-    data = json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
+    data = json.loads(path.read_text(encoding="utf-8"))
     return EvalSummary(
         success_rate=data["success_rate"],
         avg_path_length=data["avg_path_length"],
@@ -195,9 +463,17 @@ def load_baseline() -> EvalSummary | None:
     )
 
 
+def save_all_baselines(mode: str) -> None:
+    for algo in read_registry()["portfolio_allowed_algorithms"]:
+        summary = run_eval(algo, mode, save_baseline_flag=True, use_snapshot=True)
+        print_summary(summary, algo, mode)
+        print(f"  -> baselines/{algo}.json")
+
+
 def append_results_tsv(row: dict[str, str]) -> None:
     header = [
         "timestamp_utc",
+        "algorithm",
         "mode",
         "git_commit",
         "success_rate",
@@ -214,19 +490,23 @@ def append_results_tsv(row: dict[str, str]) -> None:
         f.write("\t".join(row[h] for h in header) + "\n")
 
 
-def run_eval(mode: str, save_baseline_flag: bool) -> EvalSummary:
-    map_paths = list_map_files(mode)
-    per_map = [simulate_map(load_map(p)) for p in map_paths]
+def run_eval(
+    algorithm: str,
+    mode: str,
+    save_baseline_flag: bool,
+    *,
+    use_snapshot: bool = False,
+) -> EvalSummary:
+    map_paths = list_map_files(algorithm, mode)
+    per_map = [simulate_map(p, algorithm, use_snapshot=use_snapshot) for p in map_paths]
     summary = aggregate(per_map)
-
-    if save_baseline_flag or not BASELINE_PATH.exists():
-        save_baseline(summary)
-
+    if save_baseline_flag or not baseline_file(algorithm).exists():
+        save_baseline(summary, algorithm)
     return summary
 
 
-def print_summary(summary: EvalSummary, mode: str) -> None:
-    print(f"mode={mode} maps={summary.maps_evaluated}")
+def print_summary(summary: EvalSummary, algorithm: str, mode: str) -> None:
+    print(f"algorithm={algorithm} mode={mode} maps={summary.maps_evaluated}")
     print(f"success_rate={summary.success_rate:.4f}")
     print(f"avg_path_length={summary.avg_path_length:.4f}")
     print(f"plan_time_ms={summary.plan_time_ms:.3f}")
@@ -237,26 +517,47 @@ def print_summary(summary: EvalSummary, mode: str) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="autopath fixed evaluator")
+    reg = read_registry()
+    parser = argparse.ArgumentParser(description="autopath fixed evaluator (Phase 3 Portfolio)")
+    parser.add_argument(
+        "--algorithm",
+        choices=list(ALL_ALGORITHMS),
+        default=None,
+        help="本轮评测算法；省略时读 portfolio_manifest.yaml 或 registry active_algorithm",
+    )
     parser.add_argument("--mode", choices=["quick", "full"], default="quick")
+    parser.add_argument("--save-baseline", action="store_true", help="写入 baselines/<algorithm>.json")
     parser.add_argument(
-        "--save-baseline",
+        "--save-all-baselines",
         action="store_true",
-        help="将本次结果写入 baseline_results.json（首次 setup 时使用）",
+        help="对 portfolio_allowed_algorithms 全部 save-baseline（Setup 用）",
     )
-    parser.add_argument(
-        "--notes",
-        default="",
-        help="实验备注（写入 results.tsv 的 notes 列，建议：hyp=... | change=...）",
-    )
+    parser.add_argument("--notes", default="")
     args = parser.parse_args()
 
-    summary = run_eval(args.mode, save_baseline_flag=args.save_baseline)
-    print_summary(summary, args.mode)
+    if args.save_all_baselines:
+        print(f"evolution_mode={reg['evolution_mode']} save_all mode={args.mode}")
+        save_all_baselines(args.mode)
+        print(f"Wrote baselines under {BASELINES_DIR}")
+        return 0
 
-    baseline = load_baseline()
+    algorithm = resolve_default_algorithm(args.algorithm)
+    if reg["evolution_mode"] == "portfolio":
+        manifest_algo = read_portfolio_manifest()
+        if args.algorithm and manifest_algo and args.algorithm != manifest_algo:
+            print(
+                f"warning: --algorithm={args.algorithm} 与 portfolio_manifest "
+                f"({manifest_algo}) 不一致，以 CLI 为准",
+                file=sys.stderr,
+            )
+
+    summary = run_eval(algorithm, args.mode, save_baseline_flag=args.save_baseline)
+    print_summary(summary, algorithm, args.mode)
+
+    baseline = load_baseline(algorithm)
     better = ""
-    if baseline is not None and BASELINE_PATH.exists() and not args.save_baseline:
+    bl_path = baseline_file(algorithm)
+    if baseline is not None and bl_path.exists() and not args.save_baseline:
         better = str(is_better(summary, baseline))
     elif args.save_baseline:
         better = "baseline_set"
@@ -264,6 +565,7 @@ def main() -> int:
     append_results_tsv(
         {
             "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+            "algorithm": algorithm,
             "mode": args.mode,
             "git_commit": git_commit_short(),
             "success_rate": f"{summary.success_rate:.6f}",
@@ -274,6 +576,7 @@ def main() -> int:
             "notes": " ".join(args.notes.split()),
         }
     )
+    print(f"baseline={bl_path}")
     print(f"Wrote {RESULTS_PATH}")
     return 0 if summary.success_rate >= 1.0 - 1e-12 else 1
 

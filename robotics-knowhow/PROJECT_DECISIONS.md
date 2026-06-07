@@ -62,3 +62,34 @@
 - Dijkstra: domains/path-planning/dijkstra.md
 - A*: domains/path-planning/astar.md
 - RRT*: domains/path-planning/rrt-star.md
+
+---
+
+# 已锁定产品决策（第三期 — Portfolio）
+
+## 1. 进化模式
+
+- `registry.yaml` → `evolution_mode: portfolio`
+- Agent 从 `portfolio_allowed_algorithms` **每轮自选**一个算法进化
+- 不做跨算法指标排名（eval_mode / 地图不同）
+
+## 2. 文件分工
+
+| 文件 | 角色 |
+|------|------|
+| `planner.py` | 当前轮次可执行代码（Agent 改） |
+| `planners/*.py` | 只读快照，切换时复制 |
+| `portfolio_manifest.yaml` | Agent 声明本轮 algorithm |
+| `baselines/<algo>.json` | 分算法 baseline |
+| `prepare.py` | 按 `--algorithm` 选地图；**始终 import planner.py** |
+
+## 3. 比较规则
+
+- `better_than_baseline` 只对比 `baselines/<本轮算法>.json`
+- 同一 git 历史可含多算法 commit；每轮 keep/rollback 仍按**本轮算法** baseline
+
+## 4. 禁止
+
+- Pipeline 组合（Phase 4 再议）
+- 同时在一个 planner.py 里混跑两种 plan 接口
+
