@@ -14,7 +14,7 @@ class Config:
 
     def __init__(self) -> None:
         self.resolution = 0.4
-        self.robot_radius = 0.3
+        self.robot_radius = 0.28
         self.motion_model = "8-dir"  # "8-dir" | "4-dir"
 
 
