@@ -10,7 +10,7 @@ stages:
     algorithm: rrt_star
     role: global
     params:
-      expand_dis: 3.13
+      expand_dis: 3.0
       path_resolution: 0.4
       goal_sample_rate: 28
       max_iter: 1200
