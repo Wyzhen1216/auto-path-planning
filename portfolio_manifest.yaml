@@ -2,4 +2,4 @@
 # 切换算法时：1) 从 planners/<algo>.py 复制到 planner.py  2) 更新本文件  3) commit 两者
 
 algorithm: rrt_star  # dwa | dijkstra | astar | rrt_star
-rationale: "RRT* 最佳配置下调 connect_circle_dist 22 寻更优重连"
+rationale: "RRT* 最佳 dist=20 配置下略增 expand_dis 减少锯齿路径"
