@@ -47,7 +47,17 @@
 
 ### 示例文件
 
-见 `maps/grid/simple_corridor.json`
+见 `maps/grid/`：
+
+| 文件 | 说明 |
+|------|------|
+| `open_room.json` | 空旷房间 + 单段内墙 |
+| `simple_corridor.json` | 走廊 + 内部竖墙 |
+| `narrow_passage.json` | 竖墙窄缝 |
+| `l_shaped_room.json` | L 形内墙绕路 |
+| `multi_room.json` | 多房间 + 门洞 |
+
+**full 模式**：`maps/grid/*.json` 全部（5 张）；**quick 模式**：`simple_corridor`、`open_room`、`narrow_passage`（3 张）。
 
 ---
 
@@ -91,7 +101,17 @@
 
 ### 示例文件
 
-见 `maps/sampling/circles_obstacles.json`
+见 `maps/sampling/`：
+
+| 文件 | 说明 |
+|------|------|
+| `circles_obstacles.json` | PythonRobotics 风格圆形障碍 |
+| `sparse_circles.json` | 稀疏大圆 |
+| `dense_field.json` | 密集障碍场 |
+| `narrow_gap.json` | 两圆窄缝 |
+| `wide_open.json` | 开阔 + 少量障碍 |
+
+**full 模式**：`maps/sampling/*.json` 全部（5 张）；**quick 模式**：`circles_obstacles`、`sparse_circles`、`narrow_gap`（3 张）。
 
 ---
 

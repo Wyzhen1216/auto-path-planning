@@ -13,5 +13,5 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["planners"]
+packages = ["planners", "planner_lib"]
 py-modules = ["planner", "prepare"]

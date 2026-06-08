@@ -90,6 +90,38 @@
 
 ## 4. 禁止
 
-- Pipeline 组合（Phase 4 再议）
-- 同时在一个 planner.py 里混跑两种 plan 接口
+- ~~Pipeline 组合（Phase 4 再议）~~ → Phase 4 Scheme A 已启用（见下方第四期）
+
+---
+
+# 已锁定产品决策（第四期 — Composite Scheme A）
+
+## 1. 进化模式
+
+- `registry.yaml` → `evolution_mode: composite`
+- Agent 编辑 **`evolution_manifest.yaml`**（template + stages + params）
+- 人类维护 **`planner_lib/`** 固定 pipeline 模板（`single`、`grid_global_dwa`）
+- `planner.py` 为薄 bootstrap，不再承载完整算法源码
+
+## 2. 文件分工
+
+| 文件 | 角色 |
+|------|------|
+| `evolution_manifest.yaml` | Agent 主编辑目标 |
+| `planner_lib/` | 人类维护的组合逻辑与 manifest 解析 |
+| `planner.py` | 薄 re-export（single 模板） |
+| `planners/*.py` | 只读快照 |
+| `baselines/pipelines/<pipeline_id>.json` | 按 pipeline 对比 baseline |
+| `prepare.py` | composite 评测入口 |
+
+## 3. 比较规则
+
+- `better_than_baseline` 对比 **`baselines/pipelines/<pipeline_id>.json`**
+- `pipeline_id` 由 template + stage 算法/role 决定，**不含 hyperparam**
+- 禁止跨 pipeline_id 比较
+
+## 4. 禁止
+
+- Agent 修改 `planner_lib/`、`prepare.py`
+- 未注册 template 或 stage 算法
 

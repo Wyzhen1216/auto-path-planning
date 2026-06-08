@@ -1,0 +1,20 @@
+{
+  "id": "multi_room",
+  "name": "multi_room",
+  "description": "Two internal walls with doorways between rooms",
+  "resolution": 0.5,
+  "robot_radius": 0.3,
+  "start": [1.0, 1.0],
+  "goal": [12.0, 12.0],
+  "world_bounds": [-2.0, 14.0, -2.0, 14.0],
+  "obstacles": [
+    [[-2, -2], [14, -2]],
+    [[14, -2], [14, 14]],
+    [[14, 14], [-2, 14]],
+    [[-2, 14], [-2, -2]],
+    [[6, -2], [6, 5]],
+    [[6, 7], [6, 14]],
+    [[-2, 7], [6, 7]],
+    [[8, 7], [14, 7]]
+  ]
+}

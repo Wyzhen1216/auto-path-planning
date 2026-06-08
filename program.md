@@ -143,7 +143,7 @@ Phase 3 已 supersede「人类锁 active_algorithm」模式。
 
 ---
 
-# Phase 3 — Portfolio 自进化（当前）
+# Phase 3 — Portfolio 自进化（已由 Phase 4 supersede）
 
 Agent **每轮从 knowhow 白名单自选一个算法**，只与该算法的 baseline 比较。
 
@@ -254,4 +254,227 @@ git checkout HEAD -- portfolio_manifest.yaml   # 若 manifest 也提交过
 
 - 至少两个不同算法出现 `better_than_baseline=True` 且可解释
 - 任一算法不得长期 success_rate 低于其 baseline
+
+---
+
+# Phase 4 — Composite 自进化（Scheme A，当前）
+
+Agent **编辑 `evolution_manifest.yaml`**（template、各 stage 算法与 params），人类维护 `planner_lib/` 固定组合模板；`planner.py` 为薄 bootstrap。
+
+## 必读
+
+1. `robotics-knowhow/registry.yaml`（`evolution_mode: composite`）
+2. `robotics-knowhow/agent/search-policy.md`（Phase 4 节）
+3. `evolution_manifest.yaml` + `planner_lib/manifest.py`（ALLOWED_TEMPLATES）
+4. 各 stage 算法 knowhow 卡片
+
+## 文件分工
+
+| 文件 | 谁改 |
+|------|------|
+| `prepare.py` | **禁止**（含 composite 评测） |
+| `evolution_manifest.yaml` | **Agent**（主编辑目标） |
+| `planner.py` | **禁止大改**（薄 bootstrap；逻辑在 planner_lib） |
+| `planner_lib/` | **人类**（固定 pipeline 模板与 runners） |
+| `planners/*.py` | **禁止**（只读快照） |
+| `portfolio_manifest.yaml` | Phase 3 遗留；Composite 不用 |
+| `baselines/pipelines/<pipeline_id>.json` | pipeline baseline |
+
+## Pipeline 模板（MVP）
+
+| template | 说明 | 地图 |
+|----------|------|------|
+| `single` | 单算法，等同 Phase 3 单 stage | 该算法 native maps |
+| `grid_global_dwa` | grid 全局（dijkstra/astar）+ DWA 局部跟踪 | `maps/grid/` |
+
+`pipeline_id` = `template-algorithm-role-...`（**不含 param 值**），例如 `single-rrt_star-global`、`grid_global_dwa-dijkstra-global-dwa-local`。
+
+## Setup
+
+```powershell
+cd D:\autopathplanning
+pip install -e .
+python prepare.py --save-all-pipeline-baselines --mode full
+```
+
+确认 `baselines/pipelines/` 下对应 json 存在。`single` 读根目录 `evolution_manifest.yaml`；`grid_global_dwa` 示例见 `examples/evolution_manifest.grid_global_dwa.yaml`（复制到根目录可切换模板）。
+
+## 实验循环（Composite Karpathy Loop）
+
+1. **选型**：决定 `template` 与各 stage `algorithm` / `params`（须在 registry 白名单内）
+2. **假设**：一句话（含为何选此 template / 参数）
+3. **只改** `evolution_manifest.yaml`
+4. `git add evolution_manifest.yaml && git commit -m "exp(<pipeline_id>): <描述>"`
+5. `python prepare.py --mode full --notes "pipeline=<id> | hyp=... | change=..."`
+6. `better_than_baseline` 对比 **`baselines/pipelines/<pipeline_id>.json`**
+   - `True` → **keep**
+   - `False` → rollback
+7. 追加 `experiment_log.md`
+
+### 实验记录模板（Phase 4）
+
+```markdown
+## P4-Round <N> | <hash> | <keep|rollback> | <pipeline_id>
+- **模板**: <template> / stages=<...>
+- **假设**: <一句话>
+- **改动**: <evolution_manifest.yaml 具体改动>
+- **指标**: success_rate=<>, avg_path_length=<>, plan_time_ms=<>, better_than_baseline=<>
+- **决策**: keep / rollback
+```
+
+### Rollback
+
+```powershell
+git reset HEAD~1
+git checkout HEAD -- evolution_manifest.yaml
+```
+
+### 禁止
+
+- 改 `prepare.py`、`program.md`、`maps/`、`planners/`、`planner_lib/`
+- 在 manifest 中发明未注册的 template
+- 跨 pipeline_id 比较 path_length 决定 keep
+- 删碰撞检测、加 pip 依赖
+
+### 允许
+
+- 切换 `template`（如 `single` ↔ `grid_global_dwa`）
+- 改各 stage `params`（须在 registry `editable_in_planner` 内）
+- 改 stage 内 `algorithm`（须在 `portfolio_allowed_algorithms` 与 template role 允许列表内）
+
+## 启动提示（Phase 4 Agent）
+
+```text
+阅读 D:\autopathplanning\program.md Phase 4 与 robotics-knowhow/agent/search-policy.md。
+若 baselines/pipelines/ 不全，先 python prepare.py --save-all-pipeline-baselines --mode full。
+然后 Composite 循环：只改 evolution_manifest.yaml，commit 后 python prepare.py --mode full --notes "pipeline=... | hyp=... | change=..."，
+按 baselines/pipelines/<pipeline_id>.json 决定 keep 或 git reset HEAD~1 + 恢复 manifest，写 experiment_log.md。
+持续循环直到我说停。
+```
+
+## 成功标准（Phase 4）
+
+- 至少一个 pipeline（含 composite）出现 `better_than_baseline=True` 且可解释
+- `success_rate` 不得低于该 pipeline 的 baseline
+
+---
+
+## 整夜跑 — 启动与监控（Phase 4）
+
+### 启动前（PowerShell，只做一次）
+
+```powershell
+cd D:\autopathplanning
+pip install -e .
+python prepare.py --save-all-pipeline-baselines --mode full
+```
+
+确认 `baselines\pipelines\` 下 json 存在（至少当前 `evolution_manifest.yaml` 对应的 `pipeline_id`）。  
+系统设置：**电源 → 从不休眠**（插电）。
+
+### 怎么在 Cursor 里启动 Agent
+
+1. 用 Cursor 打开文件夹 `D:\autopathplanning`
+2. 打开 **Agent**（Composer / Agent 模式，非 Ask）
+3. **新建对话**（避免旧 Phase 3 Portfolio 上下文干扰）
+4. 将下方「整夜 Agent 提示词」**全文复制**粘贴发送
+5. 发送后 **不要关 Cursor、不要休眠**；可另开终端监控（见下）
+
+### 整夜 Agent 提示词（Phase 4，复制整段）
+
+```text
+你在 D:\autopathplanning 运行 Phase 4 Composite 自进化（Scheme A）。严格遵守 program.md Phase 4 与 robotics-knowhow/agent/search-policy.md。
+
+【Setup 检查】
+1. 确认 registry.yaml 中 evolution_mode: composite
+2. 读 evolution_manifest.yaml，记下当前 template 与 pipeline_id（格式：template-algo-role-...，不含 param）
+3. 若 baselines/pipelines/ 下缺少当前 pipeline_id 的 json，或 success_rate 非 1.0，先运行：
+   python prepare.py --save-all-pipeline-baselines --mode full
+4. 可选冒烟：python prepare.py --mode quick（不与 baseline 比）
+
+【Composite 循环 — 每轮必须按顺序，不得跳步】
+1. 读 registry.yaml（allowed_pipelines、portfolio_allowed_algorithms）与 evolution_manifest.yaml
+2. 读 planner_lib/manifest.py 中 ALLOWED_TEMPLATES，确认 template + stages 合法
+3. 决定本轮策略（可继续同一 pipeline 调参，或切换 template / stage algorithm）：
+   - single：1 stage global（dwa | dijkstra | astar | rrt_star）
+   - grid_global_dwa：global=dijkstra|astar + local=dwa；参考 examples/evolution_manifest.grid_global_dwa.yaml
+4. 读各 stage 对应 knowhow 卡片（domains/path-planning/<algo>.md），提出一句话假设
+5. 只改 evolution_manifest.yaml（template / stages / params；params 须在 registry editable_in_planner 内）
+6. git add evolution_manifest.yaml
+   git commit -m "exp(<pipeline_id>): <简短描述>"
+7. python prepare.py --mode full --notes "pipeline=<pipeline_id> | template=<template> | hyp=<假设> | change=<具体改动>"
+8. 读终端与 results.tsv 最后一行（含 pipeline_id、template 列）：
+   - better_than_baseline=True → keep commit
+   - 否则 rollback（禁止 git reset --hard 整仓）：
+     git reset HEAD~1
+     git checkout HEAD -- evolution_manifest.yaml
+9. 追加 experiment_log.md（Phase 4 模板：P4-Round N | hash | keep/rollback | pipeline_id）
+10. Chat 回复贴同一段摘要（模板/pipeline_id/假设/指标/决策）
+
+【切换 template 注意】
+- 改 template 或 stage algorithm 会改变 pipeline_id → baseline 文件也变了，只与 baselines/pipelines/<新 pipeline_id>.json 比
+- 若新 pipeline_id 无 baseline，先 python prepare.py --save-pipeline-baseline --mode full（或 save-all-pipeline-baselines）
+- 切换后可用 --mode quick 冒烟，但与 baseline 对比必须用 --mode full
+
+【纪律】
+- 只改 evolution_manifest.yaml；禁止改 prepare.py、program.md、maps/、planners/、planner_lib/、planner.py
+- 禁止跨 pipeline_id 比 path_length 决定 keep
+- 禁止发明未注册 template；禁止 stage 算法超出白名单
+- 禁止提交 results.tsv、baselines/、experiment_log.md
+- 连续自动循环，不要停，不要每轮问我，直到我说「停」
+
+从 Setup 检查开始，然后进入 P4-Round 1。我不说停就不要停。
+```
+
+### 整夜监控（另开一个 PowerShell，可选）
+
+```powershell
+cd D:\autopathplanning
+
+# 每 30 秒刷新最新结果（Ctrl+C 停止）
+while ($true) {
+  Clear-Host
+  Write-Host "=== $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ==="
+  Write-Host "`n--- evolution_manifest (template) ---"
+  Select-String -Path evolution_manifest.yaml -Pattern "^template:" -ErrorAction SilentlyContinue
+  Write-Host "`n--- results.tsv (last 8) ---"
+  Get-Content results.tsv -Tail 8 -ErrorAction SilentlyContinue
+  Write-Host "`n--- experiment_log.md (last 20 lines) ---"
+  Get-Content experiment_log.md -Tail 20 -ErrorAction SilentlyContinue
+  Write-Host "`n--- git log (last 5 keeps) ---"
+  git log --oneline -5
+  Start-Sleep -Seconds 30
+}
+```
+
+### 结果在哪里查
+
+| 用途 | 文件 |
+|------|------|
+| 每轮指标、better_than_baseline、notes | `results.tsv`（含 pipeline_id、template 列） |
+| 人类可读：模板、假设、keep/rollback | `experiment_log.md`（Agent 追加） |
+| 对比基准 | `baselines/pipelines/<pipeline_id>.json` |
+| 保留的改动 | `git log` / `evolution_manifest.yaml` |
+
+以上文件均在本地，**不在 GitHub**（.gitignore）。
+
+### 早上停止
+
+在 Agent 对话里发送：**停**
+
+然后复盘：
+
+```powershell
+cd D:\autopathplanning
+Get-Content results.tsv -Tail 20
+Get-Content experiment_log.md -Tail 40
+git log --oneline -30
+Get-ChildItem baselines\pipelines\
+```
+
+---
+
+## 整夜跑 — Phase 3 Portfolio（legacy，已 supersede）
+
+Phase 3 整夜提示词见 git 历史；当前请用上方 Phase 4 整夜 Agent 提示词。
 

@@ -1,0 +1,14 @@
+{
+  "id": "sparse_circles",
+  "name": "sparse_circles",
+  "description": "Few widely spaced circular obstacles",
+  "start": [0.0, 0.0],
+  "goal": [12.0, 12.0],
+  "robot_radius": 0.8,
+  "world_bounds": [-2.0, 15.0, -2.0, 15.0],
+  "obstacle_circles": [
+    [4.0, 4.0, 1.2],
+    [8.0, 8.0, 1.0],
+    [10.0, 3.0, 1.0]
+  ]
+}

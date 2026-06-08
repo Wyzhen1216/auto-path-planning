@@ -1,17 +1,22 @@
-# 算法注册表 — Phase 3 Portfolio
-# Agent 从 portfolio_allowed_algorithms 中自由选择；每轮只进化一个算法
+# 算法注册表 — Phase 4 Composite（Scheme A）
+# Agent 编辑 evolution_manifest.yaml（template + stages + params）；人类维护 planner_lib 组合逻辑
 
-evolution_mode: portfolio  # portfolio | locked（locked = Phase 2 单算法模式）
+evolution_mode: composite  # composite | portfolio | locked
 
-# Portfolio 模式下 Agent 可选算法（须在 algorithms 节有完整配置）
+# Composite 允许的 pipeline 模板（见 planner_lib/manifest.py ALLOWED_TEMPLATES）
+allowed_pipelines:
+  - single
+  - grid_global_dwa
+
+# 各 stage 可选算法（须在 algorithms 节有完整配置）
 portfolio_allowed_algorithms:
   - dijkstra
   - astar
   - rrt_star
   - dwa
 
-# locked 模式 fallback；Portfolio 默认算法（manifest 缺失时使用）
-active_algorithm: dijkstra
+# locked / manifest 缺失 fallback
+active_algorithm: rrt_star
 
 algorithms:
   dwa:

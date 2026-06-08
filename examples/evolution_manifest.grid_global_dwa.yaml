@@ -1,0 +1,20 @@
+# 示例：grid 全局规划 + DWA 局部跟踪（Setup 时 --save-all-pipeline-baselines 用）
+template: grid_global_dwa
+
+rationale: "Dijkstra 全局路径 + DWA 沿 waypoint 跟踪（grid 地图）"
+
+stages:
+  - id: global
+    algorithm: dijkstra
+    role: global
+    params:
+      resolution: 0.5
+      robot_radius: 0.5
+
+  - id: local
+    algorithm: dwa
+    role: local
+    params:
+      robot_radius: 0.5
+      to_goal_cost_gain: 0.5
+      obstacle_cost_gain: 1.0
