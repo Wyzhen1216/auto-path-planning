@@ -1,18 +1,15 @@
 # Phase 4 Scheme A — declarative pipeline + per-stage params
 # Agent 主要改本文件（params / algorithm 选择）；planner.py 为薄编排层
 
-template: single  # single | grid_global_dwa
+template: single
 
-rationale: "Phase 4 默认：单算法 RRT* 全局最佳（等同 Portfolio HEAD）"
+rationale: "切换 A* 全局规划，Phase3 最佳 resolution=0.4"
 
 stages:
   - id: planner
-    algorithm: rrt_star
+    algorithm: astar
     role: global
     params:
-      expand_dis: 3.13
-      path_resolution: 0.4
-      goal_sample_rate: 26
-      max_iter: 1200
-      connect_circle_dist: 34.0
-      robot_radius: 0.77
+      resolution: 0.4
+      robot_radius: 0.5
+      heuristic_weight: 1.0
