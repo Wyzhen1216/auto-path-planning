@@ -2,4 +2,4 @@
 # 切换算法时：1) 从 planners/<algo>.py 复制到 planner.py  2) 更新本文件  3) commit 两者
 
 algorithm: rrt_star  # dwa | dijkstra | astar | rrt_star
-rationale: "RRT* 最佳 dist=35，在 32-35 区间寻更优"
+rationale: "RRT* expand=3.15 新最佳 20.31m，继续减至 3.1"
