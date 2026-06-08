@@ -18,7 +18,7 @@ class Config:
         self.path_resolution = 0.5
         self.goal_sample_rate = 30
         self.max_iter = 600
-        self.connect_circle_dist = 32.0
+        self.connect_circle_dist = 35.0
         self.robot_radius = 0.8
 
 
