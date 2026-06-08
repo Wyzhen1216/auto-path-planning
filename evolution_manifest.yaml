@@ -2,12 +2,16 @@
 
 template: single
 
-rationale: "Dijkstra 全局 Phase3 最佳 resolution=0.4"
+rationale: "恢复 RRT* Composite 最佳配置，微调 expand_dis"
 
 stages:
   - id: planner
-    algorithm: dijkstra
+    algorithm: rrt_star
     role: global
     params:
-      resolution: 0.4
-      robot_radius: 0.45
+      expand_dis: 3.15
+      path_resolution: 0.4
+      goal_sample_rate: 26
+      max_iter: 1200
+      connect_circle_dist: 34.0
+      robot_radius: 0.77
