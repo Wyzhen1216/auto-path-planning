@@ -11,7 +11,7 @@ stages:
     params:
       expand_dis: 3.13
       path_resolution: 0.44
-      goal_sample_rate: 27
+      goal_sample_rate: 26
       max_iter: 1100
       connect_circle_dist: 34.0
       robot_radius: 0.77
