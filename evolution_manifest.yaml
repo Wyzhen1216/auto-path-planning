@@ -10,7 +10,7 @@ stages:
     role: global
     params:
       expand_dis: 3.13
-      path_resolution: 0.42
+      path_resolution: 0.44
       goal_sample_rate: 26
       max_iter: 1200
       connect_circle_dist: 34.0
