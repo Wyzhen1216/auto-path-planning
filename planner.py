@@ -16,8 +16,8 @@ class Config:
     def __init__(self) -> None:
         self.expand_dis = 3.15
         self.path_resolution = 0.45
-        self.goal_sample_rate = 32
-        self.max_iter = 800
+        self.goal_sample_rate = 30
+        self.max_iter = 1000
         self.connect_circle_dist = 35.0
         self.robot_radius = 0.8
 
