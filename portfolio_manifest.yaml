@@ -2,4 +2,4 @@
 # 切换算法时：1) 从 planners/<algo>.py 复制到 planner.py  2) 更新本文件  3) commit 两者
 
 algorithm: rrt_star  # dwa | dijkstra | astar | rrt_star
-rationale: "RRT* 在 expand_dis 3.2-3.4 区间寻 sweet spot"
+rationale: "RRT* 恢复 expand_dis=3.2 最佳配置，再微调 connect_circle_dist"
