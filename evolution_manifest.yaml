@@ -10,9 +10,9 @@ stages:
     algorithm: rrt_star
     role: global
     params:
-      expand_dis: 3.0
+      expand_dis: 3.13
       path_resolution: 0.4
       goal_sample_rate: 28
-      max_iter: 1200
+      max_iter: 1500
       connect_circle_dist: 34.0
       robot_radius: 0.8
