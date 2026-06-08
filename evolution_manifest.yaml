@@ -11,5 +11,5 @@ stages:
     role: global
     params:
       resolution: 0.4
-      robot_radius: 0.5
+      robot_radius: 0.45
       heuristic_weight: 1.0
