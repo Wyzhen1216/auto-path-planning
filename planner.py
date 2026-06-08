@@ -14,9 +14,9 @@ class Config:
     """RRT* 参数 — Agent 主要改这里。"""
 
     def __init__(self) -> None:
-        self.expand_dis = 3.14
+        self.expand_dis = 3.13
         self.path_resolution = 0.4
-        self.goal_sample_rate = 24
+        self.goal_sample_rate = 26
         self.max_iter = 1000
         self.connect_circle_dist = 35.0
         self.robot_radius = 0.8
