@@ -1,17 +1,21 @@
-# Phase 4 Scheme A — declarative pipeline + per-stage params
+# Phase 4 Scheme A — grid global + DWA local
 
-template: single
+template: grid_global_dwa
 
-rationale: "恢复 RRT* Composite 最佳配置，微调 expand_dis"
+rationale: "Dijkstra 全局 + DWA 局部，提高 goal 权重缩短跟踪路径"
 
 stages:
-  - id: planner
-    algorithm: rrt_star
+  - id: global
+    algorithm: dijkstra
     role: global
     params:
-      expand_dis: 3.13
-      path_resolution: 0.44
-      goal_sample_rate: 26
-      max_iter: 1100
-      connect_circle_dist: 34.0
-      robot_radius: 0.77
+      resolution: 0.5
+      robot_radius: 0.5
+
+  - id: local
+    algorithm: dwa
+    role: local
+    params:
+      robot_radius: 0.5
+      to_goal_cost_gain: 0.55
+      obstacle_cost_gain: 1.0
