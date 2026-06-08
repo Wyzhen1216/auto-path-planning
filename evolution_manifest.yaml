@@ -1,15 +1,13 @@
 # Phase 4 Scheme A — declarative pipeline + per-stage params
-# Agent 主要改本文件（params / algorithm 选择）；planner.py 为薄编排层
 
 template: single
 
-rationale: "切换 A* 全局规划，Phase3 最佳 resolution=0.4"
+rationale: "Dijkstra 全局 Phase3 最佳 resolution=0.4"
 
 stages:
   - id: planner
-    algorithm: astar
+    algorithm: dijkstra
     role: global
     params:
       resolution: 0.4
       robot_radius: 0.45
-      heuristic_weight: 1.0
