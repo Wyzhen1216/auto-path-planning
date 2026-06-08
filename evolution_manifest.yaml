@@ -15,4 +15,4 @@ stages:
       goal_sample_rate: 26
       max_iter: 1200
       connect_circle_dist: 34.0
-      robot_radius: 0.8
+      robot_radius: 0.77
