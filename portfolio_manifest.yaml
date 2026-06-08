@@ -1,5 +1,5 @@
 # Phase 3 Portfolio — Agent 每轮声明本轮选用的算法（与 planner.py 一致）
 # 切换算法时：1) 从 planners/<algo>.py 复制到 planner.py  2) 更新本文件  3) commit 两者
 
-algorithm: rrt_star  # dwa | dijkstra | astar | rrt_star
-rationale: "RRT* 最佳 expand=3.15 dist=35，试探 path_resolution=0.45"
+algorithm: astar  # dwa | dijkstra | astar | rrt_star
+rationale: "RRT* 已 20.29m，切换 A* 试探 heuristic_weight=1.03"
