@@ -19,4 +19,4 @@ stages:
       robot_radius: 0.5
       to_goal_cost_gain: 0.55
       obstacle_cost_gain: 1.0
-      predict_time: 2.0
+      predict_time: 1.5
